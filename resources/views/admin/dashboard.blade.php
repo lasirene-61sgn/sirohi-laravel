@@ -48,25 +48,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Support Members Count -->
-    <div class="card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Support Members</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ $supportMembersCount }}</p>
-                </div>
-                <div class="bg-purple-100 p-3 rounded-full">
-                    <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Additional Counts -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
     <!-- Gallery Items Count -->
     <div class="card">
         <div class="card-body">
@@ -96,6 +77,26 @@
             </div>
         </div>
     </div>
+
+    <!-- Support Members Count -->
+    <!-- <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Support Members</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ $supportMembersCount }}</p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-full">
+                    <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                </div>
+            </div>
+        </div>
+    </div> -->
+</div>
+
+<!-- Additional Counts -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    
     
     <!-- Notices Count -->
     <div class="card">
