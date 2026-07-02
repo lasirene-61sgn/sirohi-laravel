@@ -25,6 +25,7 @@ use App\Models\Mobileindex;
 use App\Services\RealTimeNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class CustomerController extends Controller
 {
@@ -1222,10 +1223,13 @@ class CustomerController extends Controller
         // Get all family members for the customer
         $familyMembers = $customer->familyMembers()->get();
 
-        // Add full image URL to each member
+        // Add full image and PDF URLs to each member
         $familyMembers->transform(function ($member) {
             if ($member->image) {
                 $member->image = url($member->image);
+            }
+            if ($member->pdf) {
+                $member->pdf = url($member->pdf);
             }
             return $member;
         });
@@ -1254,9 +1258,12 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        // Add full image URL
+        // Add full image and PDF URLs
         if ($familyMember->image) {
             $familyMember->image = url($familyMember->image);
+        }
+        if ($familyMember->pdf) {
+            $familyMember->pdf = url($familyMember->pdf);
         }
 
         return response()->json([
@@ -1288,8 +1295,11 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'matrimony' => 'nullable|in:1,0,true,false,"1","0"',
             'gender' => 'nullable|string|in:male,female,other',
+            'link' => 'nullable|string|max:255',
+            'pdf' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
+        // Handle Image file
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '.' . $image->extension();
@@ -1297,14 +1307,25 @@ class CustomerController extends Controller
             $validatedData['image'] = 'uploads/family_members/' . $imageName;
         }
 
+        // Handle PDF file
+        if ($request->hasFile('pdf')) {
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '.' . $pdf->extension();
+            $pdf->move(public_path('uploads/family_pdfs'), $pdfName);
+            $validatedData['pdf'] = 'uploads/family_pdfs/' . $pdfName;
+        }
+
         $familyMember = new FamilyMember($validatedData);
         $familyMember->customer_id = $customer->id;
         $familyMember->save();
 
-        // Convert to array and add full image URL
+        // Convert to array and generate full URLs for the API response
         $responseData = $familyMember->toArray();
         if (!empty($familyMember->image)) {
             $responseData['image'] = url($familyMember->image);
+        }
+        if (!empty($familyMember->pdf)) {
+            $responseData['pdf'] = url($familyMember->pdf);
         }
 
         return response()->json([
@@ -1348,21 +1369,43 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'matrimony' => 'nullable|in:1,0,true,false,"1","0"',
             'gender' => 'nullable|string|in:male,female,other',
+            'link' => 'nullable|string|max:255',
+            'pdf' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
+        // Handle Image file replacement
         if ($request->hasFile('image')) {
+            if ($familyMember->image && File::exists(public_path($familyMember->image))) {
+                File::delete(public_path($familyMember->image));
+            }
+
             $image = $request->file('image');
             $imageName = time() . '.' . $image->extension();
             $image->move(public_path('uploads/family_members'), $imageName);
             $validatedData['image'] = 'uploads/family_members/' . $imageName;
         }
 
+        // Handle PDF file replacement
+        if ($request->hasFile('pdf')) {
+            if ($familyMember->pdf && File::exists(public_path($familyMember->pdf))) {
+                File::delete(public_path($familyMember->pdf));
+            }
+
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '.' . $pdf->extension();
+            $pdf->move(public_path('uploads/family_pdfs'), $pdfName);
+            $validatedData['pdf'] = 'uploads/family_pdfs/' . $pdfName;
+        }
+
         $familyMember->update($validatedData);
 
-        // Convert to array and add full image URL
+        // Convert to array and generate full URLs for the API response
         $responseData = $familyMember->toArray();
         if (!empty($familyMember->image)) {
             $responseData['image'] = url($familyMember->image);
+        }
+        if (!empty($familyMember->pdf)) {
+            $responseData['pdf'] = url($familyMember->pdf);
         }
 
         return response()->json([
@@ -1496,10 +1539,10 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        // 1. Get all customers with birthdays (Eager loading full village relation)
+        // 1. Get all customers with their full village and family members eager loaded
         $allBirthdays = Customer::where('admin_id', $customer->admin_id)
             ->whereNotNull('date_of_birth')
-            ->with('village')
+            ->with(['village', 'familyMembers'])
             ->get();
 
         $today = Carbon::now();
@@ -1510,7 +1553,7 @@ class CustomerController extends Controller
         $monthNames = [
             1 => 'January',
             2 => 'February',
-            3 => 'March',
+            2 => 'March',
             4 => 'April',
             5 => 'May',
             6 => 'June',
@@ -1528,7 +1571,7 @@ class CustomerController extends Controller
             $finalData[$name] = new \stdClass();
         }
 
-        // 2. Format dates, convert image asset paths, append contextual keys, filter, and sort
+        // 2. Format dates, asset paths, append keys, and format inner family arrays
         $processedBirthdays = $allBirthdays->map(function ($item) use ($todayMonth, $todayDay, &$todayCount, $monthNames, $today) {
             $dob = Carbon::parse($item->date_of_birth);
 
@@ -1548,7 +1591,6 @@ class CustomerController extends Controller
             } else {
                 $item->background_image = null;
             }
-            // -----------------------------------------------------
 
             // Check if the birthday is exactly TODAY
             if ($dob->month === $todayMonth && $dob->day === $todayDay) {
@@ -1558,21 +1600,39 @@ class CustomerController extends Controller
                 $item->is_birthday_today = false;
             }
 
-            // Structural extensions to match the application dashboard rules
-            $item->birth_month_name = $monthNames[$dob->month];
-            $item->birth_month_num = $dob->month;
-            $item->birth_day = $dob->day;
-
-            // Dynamic display timeline index grouping string
+            // Appending matching app response schema variables
+            $item->birth_month_name    = $monthNames[$dob->month];
+            $item->birth_month_num     = $dob->month;
+            $item->birth_day           = $dob->day;
             $item->birthday_group_date = sprintf('%02d-%02d-%d', $dob->day, $dob->month, $today->year);
+            $item->date_of_birth       = $dob->toIso8601String();
 
-            // Convert birth dates to structured ISO format
-            $item->date_of_birth = $dob->toIso8601String();
-
-            // Ensure standard object structural fields exist safely in the response payload
             if (!isset($item->anniversary_date)) {
                 $item->anniversary_date = null;
             }
+
+            // --- INNER FAMILY MEMBERS LIST INLINE FORMATTING ---
+            $formattedFamilyList = [];
+            foreach ($item->familyMembers as $member) {
+                if (!empty($member->image)) {
+                    $member->image = (strpos($member->image, 'http') === 0) ? $member->image : (
+                        (strpos($member->image, 'uploads/') === 0) ? url($member->image) : url('storage/' . $member->image)
+                    );
+                }
+                if (!empty($member->pdf)) {
+                    $member->pdf = (strpos($member->pdf, 'http') === 0) ? $member->pdf : (
+                        (strpos($member->pdf, 'uploads/') === 0) ? url($member->pdf) : url('storage/' . $member->pdf)
+                    );
+                }
+
+                $memberArray = $member->toArray();
+                $memberArray['age'] = $member->date_of_birth ? Carbon::parse($member->date_of_birth)->age : null;
+                $formattedFamilyList[] = $memberArray;
+            }
+
+            // Unset the default Eloquent relation array and attach custom processed array schema
+            unset($item->familyMembers);
+            $item->all_family_members = $formattedFamilyList;
 
             return $item;
         })
@@ -1586,13 +1646,12 @@ class CustomerController extends Controller
             // Sort chronologically by calendar day
             ->sortBy('birth_day');
 
-        // 3. Group data collections chronologically
+        // 3. Group data collections chronologically into final JSON structure
         $groupedByMonthNum = $processedBirthdays->groupBy('birth_month_num');
 
         foreach ($groupedByMonthNum as $monthNum => $monthGroup) {
             $monthName = $monthNames[$monthNum];
 
-            // Group customers into key-value pairs matching their upcoming milestone date
             $dateGroupings = $monthGroup->groupBy('birthday_group_date')->map(function ($customersOnDate) {
                 return $customersOnDate->values()->all();
             });
@@ -1622,10 +1681,10 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        // 1. Get all customers with anniversaries (Eager loading full village relation like showCustomer)
+        // 1. Get all customers with anniversaries (Eager loading full village and family relations)
         $allAnniversaries = Customer::where('admin_id', $customer->admin_id)
             ->whereNotNull('anniversary_date')
-            ->with('village') // Loads full schema structural properties
+            ->with(['village', 'familyMembers']) // Loads structural properties and family context
             ->get();
 
         $today = Carbon::now();
@@ -1700,6 +1759,34 @@ class CustomerController extends Controller
             if (!isset($item->date_of_birth)) {
                 $item->date_of_birth = null;
             }
+
+            // --- INNER FAMILY MEMBERS LIST INLINE FORMATTING ---
+            $formattedFamilyList = [];
+            foreach ($item->familyMembers as $member) {
+                if (!empty($member->image)) {
+                    $member->image = (strpos($member->image, 'http') === 0) ? $member->image : (
+                        (strpos($member->image, 'uploads/') === 0) ? url($member->image) : url('storage/' . $member->image)
+                    );
+                } else {
+                    $member->image = null;
+                }
+
+                if (!empty($member->pdf)) {
+                    $member->pdf = (strpos($member->pdf, 'http') === 0) ? $member->pdf : (
+                        (strpos($member->pdf, 'uploads/') === 0) ? url($member->pdf) : url('storage/' . $member->pdf)
+                    );
+                } else {
+                    $member->pdf = null;
+                }
+
+                $memberArray = $member->toArray();
+                $memberArray['age'] = $member->date_of_birth ? Carbon::parse($member->date_of_birth)->age : null;
+                $formattedFamilyList[] = $memberArray;
+            }
+
+            // Clean up native relation key and assign custom flat array schema directly to root object
+            unset($item->familyMembers);
+            $item->all_family_members = $formattedFamilyList;
 
             return $item;
         })
@@ -2204,7 +2291,7 @@ class CustomerController extends Controller
         $from_dob = $request->query('from_dob');
         $to_dob = $request->query('to_dob');
 
-        // Start Query - Added eager loading for 'village' and 'familyMembers'
+        // Start Query - Eager load relationships
         $query = Customer::with(['village'])
             ->where('admin_id', $customer->admin_id)
             ->whereHas('familyMembers', function ($q) use ($gender, $min_age, $max_age, $from_dob, $to_dob) {
@@ -2230,15 +2317,7 @@ class CustomerController extends Controller
                 if ($to_dob) {
                     $q->where('date_of_birth', '<=', $to_dob);
                 }
-            })
-            ->with(['familyMembers' => function ($q) use ($gender, $min_age, $max_age, $from_dob, $to_dob) {
-                $q->where('matrimony', true);
-                if ($gender) $q->where('gender', $gender);
-                if ($min_age) $q->where('date_of_birth', '<=', now()->subYears($min_age)->format('Y-m-d'));
-                if ($max_age) $q->where('date_of_birth', '>=', now()->subYears($max_age + 1)->addDay()->format('Y-m-d'));
-                if ($from_dob) $q->where('date_of_birth', '>=', $from_dob);
-                if ($to_dob) $q->where('date_of_birth', '<=', $to_dob);
-            }]);
+            });
 
         // Apply global search
         if ($search) {
@@ -2276,43 +2355,86 @@ class CustomerController extends Controller
             $customerAttributes['village'] = $cust->village ? $cust->village->toArray() : null;
             $customerAttributes['image'] = $customerImage;
             $customerAttributes['background_image'] = $customerBackgroundImage;
-            $customerAttributes['customer_age'] = $cust->date_of_birth ? Carbon::parse($cust->date_of_birth)->age : null;
+            $customerAttributes['customer_age'] = $cust->date_of_birth ? \Carbon\Carbon::parse($cust->date_of_birth)->age : null;
 
-            // 2. Format Family Member Images & Properties
-            foreach ($cust->familyMembers as $fm) {
+            // 2. Fetch and format the complete list of ALL family members for this customer context
+            $allFamilyList = [];
+            foreach ($cust->familyMembers()->get() as $member) {
+                $mImage = null;
+                if (!empty($member->image)) {
+                    $mImage = (strpos($member->image, 'http') === 0) ? $member->image : (
+                        (strpos($member->image, 'uploads/') === 0) ? url($member->image) : url('storage/' . $member->image)
+                    );
+                }
 
-                // Format Family Member Profile Image
+                $mPdf = null;
+                if (!empty($member->pdf)) {
+                    $mPdf = (strpos($member->pdf, 'http') === 0) ? $member->pdf : (
+                        (strpos($member->pdf, 'uploads/') === 0) ? url($member->pdf) : url('storage/' . $member->pdf)
+                    );
+                }
+
+                $memberArray = $member->attributesToArray();
+                $memberArray['image'] = $mImage;
+                $memberArray['pdf'] = $mPdf;
+                $memberArray['age'] = $member->date_of_birth ? \Carbon\Carbon::parse($member->date_of_birth)->age : null;
+
+                $allFamilyList[] = $memberArray;
+            }
+
+            // Nest the complete family list INSIDE the customer details block
+            $customerAttributes['all_family_members'] = $allFamilyList;
+
+            // 3. Filter the individual target matrimony candidates
+            $filteredTargetMembers = $cust->familyMembers()
+                ->where('matrimony', true)
+                ->where(function ($q) use ($gender, $min_age, $max_age, $from_dob, $to_dob) {
+                    if ($gender) $q->where('gender', $gender);
+                    if ($min_age) $q->where('date_of_birth', '<=', now()->subYears($min_age)->format('Y-m-d'));
+                    if ($max_age) $q->where('date_of_birth', '>=', now()->subYears($max_age + 1)->addDay()->format('Y-m-d'));
+                    if ($from_dob) $q->where('date_of_birth', '>=', $from_dob);
+                    if ($to_dob) $q->where('date_of_birth', '<=', $to_dob);
+                })->get();
+
+            foreach ($filteredTargetMembers as $fm) {
+
+                // Format Matrimony Target Profile Image
                 $familyMemberImage = null;
                 if (!empty($fm->image)) {
                     $familyMemberImage = (strpos($fm->image, 'http') === 0) ? $fm->image : (
                         (strpos($fm->image, 'uploads/') === 0) ? url($fm->image) : url('storage/' . $fm->image)
                     );
-                } else {
-                    $familyMemberImage = null;
                 }
 
-                // Format Family Member Background Image (If your family table tracks this column)
+                // Format Matrimony Target Background Image
                 $familyMemberBackgroundImage = null;
                 if (!empty($fm->background_image)) {
                     $familyMemberBackgroundImage = (strpos($fm->background_image, 'http') === 0) ? $fm->background_image : (
                         (strpos($fm->background_image, 'uploads/') === 0) ? url($fm->background_image) : url('storage/' . $fm->background_image)
                     );
-                } else {
-                    $familyMemberBackgroundImage = null;
                 }
 
-                // Convert family member attributes to array format
+                // Format Matrimony Target PDF Document URL
+                $familyMemberPdf = null;
+                if (!empty($fm->pdf)) {
+                    $familyMemberPdf = (strpos($fm->pdf, 'http') === 0) ? $fm->pdf : (
+                        (strpos($fm->pdf, 'uploads/') === 0) ? url($fm->pdf) : url('storage/' . $fm->pdf)
+                    );
+                }
+
+                // Convert filtered family member attributes to array format
                 $familyMemberAttributes = $fm->attributesToArray();
 
-                // Override image values with finalized Full App URLs
+                // Override values with finalized Absolute URLs
                 $familyMemberAttributes['image'] = $familyMemberImage;
                 $familyMemberAttributes['background_image'] = $familyMemberBackgroundImage;
-                $familyMemberAttributes['family_member_age'] = $fm->date_of_birth ? Carbon::parse($fm->date_of_birth)->age : null;
+                $familyMemberAttributes['pdf'] = $familyMemberPdf;
+                $familyMemberAttributes['family_member_age'] = $fm->date_of_birth ? \Carbon\Carbon::parse($fm->date_of_birth)->age : null;
 
-                // Combine into structured dataset
+                // Final Deep Structured Dataset matching your required JSON blueprint
                 $result[] = [
-                    'customer_details' => $customerAttributes,
-                    'family_member_details' => $familyMemberAttributes
+                    'family_member_details' => $familyMemberAttributes,
+                    'customer_details'      => $customerAttributes
                 ];
             }
         }
@@ -2382,4 +2504,76 @@ class CustomerController extends Controller
             'data' => $formattedImages
         ], 200);
     }
+
+    public function getWishMessage(Request $request)
+{
+    // 1. Validate incoming parameters
+    $request->validate([
+        'id' => 'required|integer',
+        'type' => 'required|in:customer,family_member',
+        'event_type' => 'required|in:birthday,anniversary',
+    ]);
+
+    $id = $request->input('id');
+    $type = $request->input('type');
+    $eventType = $request->input('event_type');
+    
+    $recipientName = '';
+    $recipientMobile = '';
+
+    // 2. Fetch the correct model record to extract identity details
+    if ($type === 'customer') {
+        $target = Customer::find($id);
+        if (!$target) {
+            return response()->json(['status' => 'error', 'message' => 'Customer not found.'], 404);
+        }
+        $recipientName = ucwords(strtolower($target->name));
+        $recipientMobile = $target->mobile;
+    } else {
+        $target = FamilyMember::find($id);
+        if (!$target) {
+            return response()->json(['status' => 'error', 'message' => 'Family member not found.'], 404);
+        }
+        $recipientName = ucwords(strtolower($target->name));
+        // Fall back to parent customer mobile if family member doesn't have a distinct mobile line
+        $recipientMobile = $target->mobile ?? $target->customer?->mobile;
+    }
+
+    // Fail early if there is no valid phone number associated with the entity
+    if (empty($recipientMobile)) {
+        return response()->json([
+            'status' => 'error', 
+            'message' => 'This member does not have a registered mobile number.'
+        ], 422);
+    }
+
+    // 3. Construct the customized text template package based on event rules
+    if ($eventType === 'birthday') {
+        $message = "Hi {$recipientName}! 🎉\n\nWishing you a fantastic birthday filled with joy, laughter, and great health. Have an amazing day ahead! 🎂✨";
+    } else {
+        $message = "Hi {$recipientName}! 🥂\n\nWishing you a beautiful wedding anniversary! May your journey together continue to be blessed with love and companionship. 💑🎉";
+    }
+
+    // 4. Sanitize and format the destination mobile string for WhatsApp Global Dial Plan compliance
+    // Strip everything except raw digits
+    $cleanMobile = preg_replace('/[^0-9]/', '', $recipientMobile);
+    
+    // Prefix country code if it looks like a standard 10-digit regional line (e.g., India prefix 91)
+    if (strlen($cleanMobile) === 10) {
+        $cleanMobile = '91' . $cleanMobile;
+    }
+
+    // 5. Generate secure API query strings via raw URL encoding
+    $whatsappUrl = "https://api.whatsapp.com/send?phone=" . $cleanMobile . "&text=" . rawurlencode($message);
+
+    return response()->json([
+        'status' => 'success',
+        'data' => [
+            'name' => $recipientName,
+            'mobile' => $recipientMobile,
+            'message' => $message,
+            'whatsapp_url' => $whatsappUrl
+        ]
+    ]);
+}
 }

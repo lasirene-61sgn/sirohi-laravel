@@ -164,6 +164,7 @@ Route::prefix('customer')->group(function () {
         // Birthdays and Anniversaries
         Route::get('/today-birthdays', [CustomerApiController::class, 'todayBirthdays']);
         Route::get('/today-anniversaries', [CustomerApiController::class, 'todayAnniversaries']);
+        Route::get('/wish-message', [CustomerApiController::class, 'getWishMessage']);
 
         // Notifications
         Route::get('/all-notifications', [CustomerApiController::class, 'getAllNotifications']);
@@ -187,5 +188,6 @@ Route::prefix('customer')->group(function () {
         
         // Logout
         Route::post('/logout', [CustomerAuthController::class, 'logout']);
+        
     });
 });

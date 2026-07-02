@@ -15,6 +15,8 @@ return new class extends Migration
             $table->string('blood_group')->nullable()->after('education');
             $table->text('hobbies')->nullable()->after('blood_group');
             $table->string('native_place')->nullable()->after('hobbies');
+            $table->string('link')->nullable();
+            $table->string('pdf')->nullable();
         });
     }
 

@@ -123,6 +123,8 @@ class CustomerController extends Controller
             'family.*.mobile' => 'nullable|string|max:20',
             'family.*.date_of_birth' => 'nullable|date',
             'family.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'family.*.link' => 'nullable|string|max:255',
+            'family.*.pdf' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
         // Safety check: Ensure the selected village belongs to the current admin
@@ -139,7 +141,7 @@ class CustomerController extends Controller
             $validatedData['image'] = $imagePath;
         }
 
-        if($request->hasFile('background_image')){
+        if ($request->hasFile('background_image')) {
             $imagePath = $request->file('background_image')->store('customer_backgrounds', 'public');
             $validatedData['background_image'] = $imagePath;
         }
@@ -149,10 +151,10 @@ class CustomerController extends Controller
             'admin_id' => $this->getCurrentAdminId(),
         ]));
 
-        // 3. Process and create family members if any are provided
         if ($request->has('family') && is_array($request->family)) {
             foreach ($request->family as $index => $familyData) {
-                // Check if a dedicated profile picture was uploaded for this family index item
+
+                // Handle family profile picture
                 if ($request->hasFile("family.{$index}.image")) {
                     $familyImage = $request->file("family.{$index}.image");
                     $imageName = time() . '_' . $index . '.' . $familyImage->extension();
@@ -160,7 +162,18 @@ class CustomerController extends Controller
                     $familyData['image'] = 'uploads/family_members/' . $imageName;
                 }
 
-                // Save relationship array attached directly to the new customer ID
+                // Handle family PDF upload
+                if ($request->hasFile("family.{$index}.pdf")) {
+                    $familyPdf = $request->file("family.{$index}.pdf");
+                    $pdfName = time() . '_' . $index . '.' . $familyPdf->extension();
+                    $familyPdf->move(public_path('uploads/family_pdfs'), $pdfName);
+                    $familyData['pdf'] = 'uploads/family_pdfs/' . $pdfName;
+                }
+
+                // Note: 'link' is already inside $familyData from the request, 
+                // so it automatically gets saved here.
+
+                // Save everything as a single database entry per family member
                 $customer->familyMembers()->create($familyData);
             }
         }
@@ -274,8 +287,8 @@ class CustomerController extends Controller
             }
         }
 
-        if($request->hasFile('background_image')) {
-            if($customer->background_image && Storage::exists('public/' . $customer->background_image)){
+        if ($request->hasFile('background_image')) {
+            if ($customer->background_image && Storage::exists('public/' . $customer->background_image)) {
                 Storage::delete('public/' . $customer->background_image);
             }
             $imagePath = $request->file('background_image')->store('customer_backgrounds', 'public');
@@ -631,13 +644,24 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'matrimony' => 'nullable|in:1,0,true,false,"1","0"',
             'gender' => 'nullable|string|in:male,female,other',
+            'link' => 'nullable|string|max:255',
+            'pdf' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
+        // Handle Image upload
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '.' . $image->extension();
             $image->move(public_path('uploads/family_members'), $imageName);
             $validatedData['image'] = 'uploads/family_members/' . $imageName;
+        }
+
+        // Handle PDF upload
+        if ($request->hasFile('pdf')) {
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '.' . $pdf->extension();
+            $pdf->move(public_path('uploads/family_pdfs'), $pdfName);
+            $validatedData['pdf'] = 'uploads/family_pdfs/' . $pdfName;
         }
 
         $customer->familyMembers()->create($validatedData);
@@ -687,8 +711,11 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'matrimony' => 'nullable|in:1,0,true,false,"1","0"',
             'gender' => 'nullable|string|in:male,female,other',
+            'link' => 'nullable|string|max:255',
+            'pdf' => 'nullable|file|mimes:pdf|max:5048',
         ]);
 
+        // Update Image (and clear out old file)
         if ($request->hasFile('image')) {
             if ($familyMember->image && File::exists(public_path($familyMember->image))) {
                 File::delete(public_path($familyMember->image));
@@ -698,6 +725,18 @@ class CustomerController extends Controller
             $imageName = time() . '.' . $image->extension();
             $image->move(public_path('uploads/family_members'), $imageName);
             $validatedData['image'] = 'uploads/family_members/' . $imageName;
+        }
+
+        // Update PDF (and clear out old file)
+        if ($request->hasFile('pdf')) {
+            if ($familyMember->pdf && File::exists(public_path($familyMember->pdf))) {
+                File::delete(public_path($familyMember->pdf));
+            }
+
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '.' . $pdf->extension();
+            $pdf->move(public_path('uploads/family_pdfs'), $pdfName);
+            $validatedData['pdf'] = 'uploads/family_pdfs/' . $pdfName;
         }
 
         $familyMember->update($validatedData);
@@ -717,8 +756,13 @@ class CustomerController extends Controller
 
         $familyMember = $customer->familyMembers()->findOrFail($familyMemberId);
 
+        // Housekeeping: Clean up files from public directory on delete
         if ($familyMember->image && File::exists(public_path($familyMember->image))) {
             File::delete(public_path($familyMember->image));
+        }
+
+        if ($familyMember->pdf && File::exists(public_path($familyMember->pdf))) {
+            File::delete(public_path($familyMember->pdf));
         }
 
         $familyMember->delete();

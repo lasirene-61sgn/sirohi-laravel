@@ -26,6 +26,8 @@ class FamilyMember extends Model
         'notes',
         'matrimony', // New field for matrimony status
         'gender',    // New field for gender
+        'link',
+        'pdf',
     ];
 
     protected $casts = [
