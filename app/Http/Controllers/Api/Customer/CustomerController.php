@@ -21,6 +21,7 @@ use App\Models\PollResponse;
 use App\Models\EventRSVP;
 use App\Models\Helpline;
 use App\Models\Link;
+use App\Models\Mobileindex;
 use App\Services\RealTimeNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1495,13 +1496,13 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        // 1. Get all customers with birthdays (Eager loading full village relation like showCustomer)
+        // 1. Get all customers with birthdays (Eager loading full village relation)
         $allBirthdays = Customer::where('admin_id', $customer->admin_id)
             ->whereNotNull('date_of_birth')
-            ->with('village') // Changed from 'village:id,name' to load full schema data
+            ->with('village')
             ->get();
 
-        $today = \Carbon\Carbon::now();
+        $today = Carbon::now();
         $todayMonth = $today->month;
         $todayDay = $today->day;
         $todayCount = 0;
@@ -1527,9 +1528,27 @@ class CustomerController extends Controller
             $finalData[$name] = new \stdClass();
         }
 
-        // 2. Format dates, append contextual keys, filter, and sort
+        // 2. Format dates, convert image asset paths, append contextual keys, filter, and sort
         $processedBirthdays = $allBirthdays->map(function ($item) use ($todayMonth, $todayDay, &$todayCount, $monthNames, $today) {
-            $dob = \Carbon\Carbon::parse($item->date_of_birth);
+            $dob = Carbon::parse($item->date_of_birth);
+
+            // --- CUSTOMER IMAGE & BACKGROUND IMAGE ASSET LOGIC ---
+            if (!empty($item->image)) {
+                $item->image = (strpos($item->image, 'http') === 0) ? $item->image : (
+                    (strpos($item->image, 'uploads/') === 0) ? url($item->image) : url('storage/' . $item->image)
+                );
+            } else {
+                $item->image = null;
+            }
+
+            if (!empty($item->background_image)) {
+                $item->background_image = (strpos($item->background_image, 'http') === 0) ? $item->background_image : (
+                    (strpos($item->background_image, 'uploads/') === 0) ? url($item->background_image) : url('storage/' . $item->background_image)
+                );
+            } else {
+                $item->background_image = null;
+            }
+            // -----------------------------------------------------
 
             // Check if the birthday is exactly TODAY
             if ($dob->month === $todayMonth && $dob->day === $todayDay) {
@@ -1609,7 +1628,7 @@ class CustomerController extends Controller
             ->with('village') // Loads full schema structural properties
             ->get();
 
-        $today = \Carbon\Carbon::now();
+        $today = Carbon::now();
         $todayMonth = $today->month;
         $todayDay = $today->day;
         $todayCount = 0;
@@ -1636,9 +1655,27 @@ class CustomerController extends Controller
             $finalData[$name] = new \stdClass(); // Uses standard object class so empty months output as {} instead of []
         }
 
-        // 2. Format dates, append contextual keys, filter, and sort
+        // 2. Format dates, convert image asset paths, append contextual keys, filter, and sort
         $processedAnniversaries = $allAnniversaries->map(function ($item) use ($todayMonth, $todayDay, &$todayCount, $monthNames, $today) {
-            $anniversaryDate = \Carbon\Carbon::parse($item->anniversary_date);
+            $anniversaryDate = Carbon::parse($item->anniversary_date);
+
+            // --- CUSTOMER IMAGE & BACKGROUND IMAGE ASSET LOGIC ---
+            if (!empty($item->image)) {
+                $item->image = (strpos($item->image, 'http') === 0) ? $item->image : (
+                    (strpos($item->image, 'uploads/') === 0) ? url($item->image) : url('storage/' . $item->image)
+                );
+            } else {
+                $item->image = null;
+            }
+
+            if (!empty($item->background_image)) {
+                $item->background_image = (strpos($item->background_image, 'http') === 0) ? $item->background_image : (
+                    (strpos($item->background_image, 'uploads/') === 0) ? url($item->background_image) : url('storage/' . $item->background_image)
+                );
+            } else {
+                $item->background_image = null;
+            }
+            // -----------------------------------------------------
 
             // Check if the anniversary is exactly TODAY
             if ($anniversaryDate->month === $todayMonth && $anniversaryDate->day === $todayDay) {
@@ -2161,14 +2198,15 @@ class CustomerController extends Controller
 
         // Get parameters
         $search = $request->query('search');
-        $gender = $request->query('gender'); // New: 'male' or 'female'
+        $gender = $request->query('gender');
         $min_age = $request->query('min_age');
         $max_age = $request->query('max_age');
         $from_dob = $request->query('from_dob');
         $to_dob = $request->query('to_dob');
 
-        // Start Query
-        $query = Customer::where('admin_id', $customer->admin_id)
+        // Start Query - Added eager loading for 'village' and 'familyMembers'
+        $query = Customer::with(['village'])
+            ->where('admin_id', $customer->admin_id)
             ->whereHas('familyMembers', function ($q) use ($gender, $min_age, $max_age, $from_dob, $to_dob) {
                 $q->where('matrimony', true);
 
@@ -2215,26 +2253,66 @@ class CustomerController extends Controller
 
         $customers = $query->get();
 
-        // Map results to your flat structure
         $result = [];
         foreach ($customers as $cust) {
+
+            // 1. Format Customer Images
+            $customerImage = null;
+            if (!empty($cust->image)) {
+                $customerImage = (strpos($cust->image, 'http') === 0) ? $cust->image : (
+                    (strpos($cust->image, 'uploads/') === 0) ? url($cust->image) : url('storage/' . $cust->image)
+                );
+            }
+
+            $customerBackgroundImage = null;
+            if (!empty($cust->background_image)) {
+                $customerBackgroundImage = (strpos($cust->background_image, 'http') === 0) ? $cust->background_image : (
+                    (strpos($cust->background_image, 'uploads/') === 0) ? url($cust->background_image) : url('storage/' . $cust->background_image)
+                );
+            }
+
+            // Convert customer attributes to array format
+            $customerAttributes = $cust->attributesToArray();
+            $customerAttributes['village'] = $cust->village ? $cust->village->toArray() : null;
+            $customerAttributes['image'] = $customerImage;
+            $customerAttributes['background_image'] = $customerBackgroundImage;
+            $customerAttributes['customer_age'] = $cust->date_of_birth ? Carbon::parse($cust->date_of_birth)->age : null;
+
+            // 2. Format Family Member Images & Properties
             foreach ($cust->familyMembers as $fm) {
+
+                // Format Family Member Profile Image
+                $familyMemberImage = null;
+                if (!empty($fm->image)) {
+                    $familyMemberImage = (strpos($fm->image, 'http') === 0) ? $fm->image : (
+                        (strpos($fm->image, 'uploads/') === 0) ? url($fm->image) : url('storage/' . $fm->image)
+                    );
+                } else {
+                    $familyMemberImage = null;
+                }
+
+                // Format Family Member Background Image (If your family table tracks this column)
+                $familyMemberBackgroundImage = null;
+                if (!empty($fm->background_image)) {
+                    $familyMemberBackgroundImage = (strpos($fm->background_image, 'http') === 0) ? $fm->background_image : (
+                        (strpos($fm->background_image, 'uploads/') === 0) ? url($fm->background_image) : url('storage/' . $fm->background_image)
+                    );
+                } else {
+                    $familyMemberBackgroundImage = null;
+                }
+
+                // Convert family member attributes to array format
+                $familyMemberAttributes = $fm->attributesToArray();
+
+                // Override image values with finalized Full App URLs
+                $familyMemberAttributes['image'] = $familyMemberImage;
+                $familyMemberAttributes['background_image'] = $familyMemberBackgroundImage;
+                $familyMemberAttributes['family_member_age'] = $fm->date_of_birth ? Carbon::parse($fm->date_of_birth)->age : null;
+
+                // Combine into structured dataset
                 $result[] = [
-                    'id' => $cust->id,
-                    'name' => $cust->name,
-                    'father_name' => $cust->father_name,
-                    'date_of_birth' => $cust->date_of_birth,
-                    'education' => $cust->education,
-                    'mobile' => $cust->mobile,
-                    'customer_id' => $cust->id,
-                    'family_member_name' => $fm->name,
-                    'family_member_gender' => $fm->gender, // Included gender
-                    'family_member_relationship' => $fm->relationship,
-                    'family_member_education' => $fm->education,
-                    'family_member_date_of_birth' => $fm->date_of_birth,
-                    'family_member_mobile' => $fm->mobile,
-                    'family_member_age' => $fm->date_of_birth ? \Carbon\Carbon::parse($fm->date_of_birth)->age : null,
-                    'matrimony' => $fm->matrimony,
+                    'customer_details' => $customerAttributes,
+                    'family_member_details' => $familyMemberAttributes
                 ];
             }
         }
@@ -2273,5 +2351,35 @@ class CustomerController extends Controller
             'status' => 'success',
             'message' => 'Your Profile has been deleted successfully.'
         ]);
+    }
+
+    public function getPublicImages()
+    {
+        // Retrieve the configuration record
+        $mobileIndex = Mobileindex::first();
+
+        // If no record exists or the image list is completely empty
+        if (!$mobileIndex || empty($mobileIndex->mobile_images)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No images found',
+                'data' => []
+            ], 200);
+        }
+
+        // Format output data to pair absolute url with display duration
+        $formattedImages = [];
+        foreach ($mobileIndex->mobile_images as $imgData) {
+            $formattedImages[] = [
+                'url' => asset('uploads/mobile_index/' . $imgData['image']),
+                'seconds' => isset($imgData['seconds']) ? (int)$imgData['seconds'] : 5 // Fallback to 5 if undefined
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Images retrieved successfully',
+            'data' => $formattedImages
+        ], 200);
     }
 }

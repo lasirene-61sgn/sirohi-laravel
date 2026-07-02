@@ -29,6 +29,7 @@ class AdminManagementController extends Controller
         'about_us' => 'About Us',
         'polls' => 'Polls',
         'links' => 'Links',
+        'mobile_index' => 'Mobile Images',
     ];
     
     // Define available customer fields

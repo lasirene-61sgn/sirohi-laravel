@@ -28,6 +28,7 @@ use App\Http\Controllers\Customer\FamilyMemberController;
 use App\Http\Controllers\Admin\BillController;
 use App\Http\Controllers\Admin\HelplineController;
 use App\Http\Controllers\Admin\LinkController;
+use App\Http\Controllers\Admin\MobileIndexController;
 
 /*
 |--------------------------------------------------------------------------
@@ -181,6 +182,16 @@ Route::prefix('admin')->middleware(['committee.member.auth'])->group(function ()
     Route::post('gallery/bulk-delete', [GalleryItemController::class, 'bulkDelete'])->name('admin.gallery.bulk-delete');
     // Route::resource('gallery', GalleryItemController::class);
 
+    // Mobile Index Routes (With explicitly added 'admin.' prefix)
+    Route::get('/mobile-index', [MobileIndexController::class, 'index'])->name('admin.mobile_index.index');
+    Route::get('/mobile-index/create', [MobileIndexController::class, 'create'])->name('admin.mobile_index.create');
+    Route::post('/mobile-index/store', [MobileIndexController::class, 'store'])->name('admin.mobile_index.store');
+    Route::get('/mobile-index/{id}/edit', [MobileIndexController::class, 'edit'])->name('admin.mobile_index.edit');
+    Route::put('/mobile-index/{id}/update', [MobileIndexController::class, 'update'])->name('admin.mobile_index.update');
+    Route::delete('/mobile-index/{id}', [MobileIndexController::class, 'destroy'])->name('admin.mobile_index.destroy');
+    
+    // Custom route specifically for removing a single image via click
+    Route::post('/mobile-index/{id}/remove-image', [MobileIndexController::class, 'removeImage'])->name('admin.mobile_index.remove_image');
     //Banner Routes
     Route::resource('banner', BannerController::class)->names('admin.banner');
 
@@ -249,6 +260,7 @@ Route::prefix('customer/{customer}/family')->name('admin.customer.family.')->gro
     Route::post('polls/{poll}/toggle-active', [PollController::class, 'toggleActive'])->name('admin.polls.toggle-active');
 
     Route::resource('links', LinkController::class)->names('admin.links');
+   
 });
 
 // Home route

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MobileIndexController;
 use App\Http\Controllers\Api\NotificationApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
@@ -79,6 +80,8 @@ Route::prefix('customer')->group(function () {
     Route::post('/forgot-password-otp', [CustomerAuthController::class, 'sendForgotPasswordOTP']);
     Route::post('/reset-password', [CustomerAuthController::class, 'resetPassword']);
 
+    // MOVE IT HERE: This makes it public so the app can fetch it instantly on launch!
+    Route::get('/v1/mobile-index-images', [CustomerApiController::class, 'getPublicImages']);
     // Protected Routes
     Route::middleware(['auth:sanctum'])->group(function () {
         // Customer Profile
@@ -86,8 +89,6 @@ Route::prefix('customer')->group(function () {
         Route::put('/profile', [CustomerApiController::class, 'updateProfile']);
         // Route::delete('/delete-account', [CustomerApiController::class, 'deleteProfile']);
          Route::post('/delete-account', [CustomerApiController::class, 'deleteProfile']);
-
-
         // Customer Plans
         Route::get('/plans', [CustomerApiController::class, 'plans']);
 
