@@ -928,12 +928,27 @@ class CustomerController extends Controller
 
             $eventArray['can_edit_rsvp'] = !$isPastDeadline;
 
-            if ($isPastDeadline) {
-                $eventArray['event_timeline_status'] = 'Event end date has passed';
-            } elseif (\Carbon\Carbon::now()->isSameDay($event->posted_date)) {
-                $eventArray['event_timeline_status'] = 'ongoing';
+            if ($eventArray['can_edit_rsvp']) {
+                $eventArray['event_timeline_status'] = null;
             } else {
-                $eventArray['event_timeline_status'] = 'upcoming';
+                if ($event->date) {
+                    if (\Carbon\Carbon::now()->startOfDay() > \Carbon\Carbon::parse($event->date)->startOfDay()) {
+                        $eventArray['event_timeline_status'] = 'Event end date has passed';
+                    } elseif (\Carbon\Carbon::now()->isSameDay($event->date)) {
+                        $eventArray['event_timeline_status'] = 'ongoing';
+                    } else {
+                        $eventArray['event_timeline_status'] = 'upcoming';
+                    }
+                } else {
+                    // Fallback to old behavior if date is null
+                    if ($isPastDeadline) {
+                        $eventArray['event_timeline_status'] = 'Event end date has passed';
+                    } elseif (\Carbon\Carbon::now()->isSameDay($event->posted_date)) {
+                        $eventArray['event_timeline_status'] = 'ongoing';
+                    } else {
+                        $eventArray['event_timeline_status'] = 'upcoming';
+                    }
+                }
             }
 
             unset($eventArray['rsvps']);

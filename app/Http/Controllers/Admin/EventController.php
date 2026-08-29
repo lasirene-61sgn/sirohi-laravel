@@ -51,6 +51,7 @@ class EventController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate each image
             'name' => 'required|string|max:200',
             'description' => 'nullable|string',
+            'date' => 'required|date',
             'posted_date' => 'required|date',
             'status' => 'required|in:active,inactive',
         ]);
@@ -69,6 +70,7 @@ class EventController extends Controller
             'admin_id' => $this->getAdminId(),
             'name' => $request->name,
             'description' => $request->description,
+            'date' => $request->date,
             'image_paths' => $imagePaths, // Store array of image paths
             'posted_date' => $request->posted_date,
             'status' => $request->status,
@@ -106,6 +108,7 @@ class EventController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate each image
             'name' => 'required|string|max:200',
             'description' => 'nullable|string',
+            'date' => 'required|date',
             'posted_date' => 'required|date',
             'status' => 'required|in:active,inactive',
         ]);
@@ -113,6 +116,7 @@ class EventController extends Controller
         $updateData = [
             'name' => $request->name,
             'description' => $request->description,
+            'date' => $request->date,
             'posted_date' => $request->posted_date,
             'status' => $request->status,
         ];
