@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Doctrine\Inflector\InflectorFactory;
 use App\Services\RealTimeNotificationService;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,7 +24,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Load broadcasting routes
+        // Force HTTPS for ngrok URLs to prevent Mixed Content errors in JavaScript fetch requests
+        if (str_contains(config('app.url'), 'ngrok-free.dev') || env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
         
+        // Load broadcasting routes
     }
 }

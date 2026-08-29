@@ -22,7 +22,7 @@ class BannerController extends Controller
      */
     public function index()
     {
-        $banners = Banner::where('admin_id', $this->getAdminId())
+        $banners = Banner::query()
                          ->orderBy('created_at', 'desc')
                          ->paginate(10); 
                                    
@@ -64,9 +64,7 @@ class BannerController extends Controller
     public function edit(Banner $banner)
     {
         // Authorization check: Ensure admin can only edit their own banners
-        if ($banner->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
 
         return view('admin.banner.edit', compact('banner'));
     }
@@ -77,9 +75,7 @@ class BannerController extends Controller
     public function update(Request $request, Banner $banner)
     {
         // Authorization check: Ensure admin can only update their own banners
-        if ($banner->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $request->validate([
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120', 
@@ -108,9 +104,7 @@ class BannerController extends Controller
     public function destroy(Banner $banner)
     {
         // Authorization check
-        if ($banner->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         Storage::disk('public')->delete($banner->image_path);
         $banner->delete();

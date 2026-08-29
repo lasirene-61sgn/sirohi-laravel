@@ -12,7 +12,7 @@ class LinkController extends Controller
     public function index()
     {
         $admin = Auth::guard('admin')->user();
-        $link = Link::where('admin_id', $admin->id)->first();
+        $link = Link::first();
         return view('admin.links.index', compact('link'));
     }
 

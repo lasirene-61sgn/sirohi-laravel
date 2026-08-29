@@ -101,6 +101,8 @@ class CustomerController extends Controller
             'business_name' => 'nullable|string|max:100',
             'product_service' => 'nullable|string|max:100',
             'office_address' => 'nullable|string|max:500',
+            'education' => 'nullable|string|max:255',
+            'occupation' => 'nullable|string|max:255',
             'date_of_birth' => 'nullable|date',
             'anniversary_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -246,7 +248,7 @@ class CustomerController extends Controller
         }
 
         // // Get admin events
-        // $events = \App\Models\Event::where('admin_id', $customer->admin_id)
+        // $events = \App\Models\Event::query()
         //     ->where('status', 'active')
         //     ->where('created_at', '>=', now()->subDays(7)) // Last 7 days
         //     ->orderBy('created_at', 'desc')
@@ -263,7 +265,7 @@ class CustomerController extends Controller
         // }
 
         // // Get admin gallery items
-        // $galleries = \App\Models\GalleryItem::where('admin_id', $customer->admin_id)
+        // $galleries = \App\Models\GalleryItem::query()
         //     ->where('status', 'active')
         //     ->where('created_at', '>=', now()->subDays(7)) // Last 7 days
         //     ->orderBy('created_at', 'desc')
@@ -280,7 +282,7 @@ class CustomerController extends Controller
         // }
 
         // // Get admin news
-        // $news = \App\Models\News::where('admin_id', $customer->admin_id)
+        // $news = \App\Models\News::query()
         //     ->where('status', 'active')
         //     ->where('created_at', '>=', now()->subDays(7)) // Last 7 days
         //     ->orderBy('created_at', 'desc')
@@ -297,7 +299,7 @@ class CustomerController extends Controller
         // }
 
         // // Get today's birthdays
-        // $birthdays = \App\Models\Customer::where('admin_id', $customer->admin_id)
+        // $birthdays = \App\Models\Customer::query()
         //     ->whereNotNull('date_of_birth')
         //     ->whereRaw('MONTH(date_of_birth) = ?', [date('m')])
         //     ->whereRaw('DAY(date_of_birth) = ?', [date('d')])
@@ -315,7 +317,7 @@ class CustomerController extends Controller
         // }
 
         // Get today's anniversaries
-        $anniversaries = \App\Models\Customer::where('admin_id', $customer->admin_id)
+        $anniversaries = \App\Models\Customer::query()
             ->whereNotNull('anniversary_date')
             ->whereRaw('MONTH(anniversary_date) = ?', [date('m')])
             ->whereRaw('DAY(anniversary_date) = ?', [date('d')])
@@ -402,7 +404,7 @@ class CustomerController extends Controller
 
     //     // 3. Eager Load relations
     //     $query = Customer::with(['village', 'familyMembers'])
-    //         ->where('admin_id', $customer->admin_id);
+    //         ;
 
     //     // 4. Apply search filter
     //     if ($search) {
@@ -422,7 +424,7 @@ class CustomerController extends Controller
 
     //     // 5. Calculate NEW (Unseen) Customers Count
     //     // This looks for profiles matching the admin_id that the logged-in user hasn't viewed yet
-    //     $newCustomersCount = Customer::where('admin_id', $customer->admin_id)
+    //     $newCustomersCount = Customer::query()
     //         ->whereDoesntHave('viewers', function ($q) use ($customer) {
     //             $q->where('user_id', $customer->id);
     //         })
@@ -467,7 +469,7 @@ class CustomerController extends Controller
 
         // 3. Base Query to Eager Load relations
         $query = Customer::with(['village', 'familyMembers'])
-            ->where('admin_id', $customer->admin_id);
+            ;
 
         // 4. Apply search filter
         if ($search) {
@@ -486,7 +488,7 @@ class CustomerController extends Controller
         $customers = $query->get();
 
         // 5. Get IDs of all customers under this admin that this user HAS NOT seen yet
-        $unseenCustomerIds = Customer::where('admin_id', $customer->admin_id)
+        $unseenCustomerIds = Customer::query()
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })
@@ -566,7 +568,7 @@ class CustomerController extends Controller
         // Get the specific customer from the same admin
         $targetCustomer = Customer::with('village')
             ->where('id', $id)
-            ->where('admin_id', $customer->admin_id)
+            
             ->first();
 
         // Check if customer exists and belongs to the same admin
@@ -616,7 +618,7 @@ class CustomerController extends Controller
         }
 
         // 2. Fetch the links matching the customer's admin_id
-        $links = Link::where('admin_id', $customer->admin_id)->first();
+        $links = Link::first();
 
         // 3. If no links are configured yet, return fallback empty values
         if (!$links) {
@@ -694,7 +696,7 @@ class CustomerController extends Controller
     //     // Get the specific customer from the same admin
     //     $targetCustomer = Customer::with('village')
     //         ->where('id', $id)
-    //         ->where('admin_id', $customer->admin_id)
+    //         
     //         ->first();
 
     //     // Check if customer exists and belongs to the same admin
@@ -736,7 +738,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // Get banner items from the same admin
-        $banners = Banner::where('admin_id', $customer->admin_id)
+        $banners = Banner::query()
             ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -762,7 +764,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // Get notice items from the same admin
-        $notices = Notice::where('admin_id', $customer->admin_id)
+        $notices = Notice::query()
             ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -781,7 +783,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // Get village items from the same admin
-        $villages = Village::where('admin_id', $customer->admin_id)
+        $villages = Village::query()
             ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -805,7 +807,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // Get support items from the same admin
-        $supports = Support::where('admin_id', $customer->admin_id)
+        $supports = Support::query()
             ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -821,13 +823,13 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // 1. Get gallery items from the same admin
-        $galleryItems = GalleryItem::where('admin_id', $customer->admin_id)
+        $galleryItems = GalleryItem::query()
             ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // 2. Identify newly added items unseen by this user
-        $unseenIds = GalleryItem::where('admin_id', $customer->admin_id)
+        $unseenIds = GalleryItem::query()
             ->where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
@@ -871,7 +873,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // 1. Get active events with your custom customer RSVP
-        $events = Event::where('admin_id', $customer->admin_id)
+        $events = Event::query()
             ->where('status', 'active')
             ->with(['rsvps' => function ($query) use ($customer) {
                 $query->where('customer_id', $customer->id);
@@ -880,7 +882,7 @@ class CustomerController extends Controller
             ->get();
 
         // 2. Identify newly added items unseen by this user
-        $unseenIds = Event::where('admin_id', $customer->admin_id)
+        $unseenIds = Event::query()
             ->where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
@@ -922,6 +924,18 @@ class CustomerController extends Controller
                 $eventArray['children_count'] = $rsvp['children_count'] ?? null;
             }
 
+            $isPastDeadline = \Carbon\Carbon::now()->startOfDay() > \Carbon\Carbon::parse($event->posted_date)->startOfDay();
+
+            $eventArray['can_edit_rsvp'] = !$isPastDeadline;
+
+            if ($isPastDeadline) {
+                $eventArray['event_timeline_status'] = 'Event end date has passed';
+            } elseif (\Carbon\Carbon::now()->isSameDay($event->posted_date)) {
+                $eventArray['event_timeline_status'] = 'ongoing';
+            } else {
+                $eventArray['event_timeline_status'] = 'upcoming';
+            }
+
             unset($eventArray['rsvps']);
             return $eventArray;
         });
@@ -938,13 +952,13 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // 1. Get active news
-        $newsItems = News::where('admin_id', $customer->admin_id)
+        $newsItems = News::query()
             ->where('status', 'active')
             ->orderBy('posted_date', 'desc')
             ->get();
 
         // 2. Identify newly added items unseen by this user
-        $unseenIds = News::where('admin_id', $customer->admin_id)
+        $unseenIds = News::query()
             ->where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
@@ -986,13 +1000,13 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // 1. Get committee members
-        $committeeMembers = CommitteePerson::where('admin_id', $customer->admin_id)
+        $committeeMembers = CommitteePerson::query()
             ->where('status', 'active')
             ->orderBy('sort_order', 'asc')
             ->get();
 
         // 2. Identify newly added items unseen by this user
-        $unseenIds = CommitteePerson::where('admin_id', $customer->admin_id)
+        $unseenIds = CommitteePerson::query()
             ->where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
@@ -1109,7 +1123,7 @@ class CustomerController extends Controller
 
         // Get the specific gallery item from the same admin
         $galleryItem = GalleryItem::where('id', $id)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('status', 'active')
             ->first();
 
@@ -1140,7 +1154,7 @@ class CustomerController extends Controller
 
         // Get the specific notice item from the same admin
         $noticeItem = Notice::where('id', $id)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('status', 'active')
             ->first();
 
@@ -1167,7 +1181,7 @@ class CustomerController extends Controller
 
         // Get the specific support item from the same admin
         $supportItem = Support::where('id', $id)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('status', 'active')
             ->first();
 
@@ -1449,7 +1463,7 @@ class CustomerController extends Controller
         $customer = Auth::guard('sanctum')->user();
 
         // Get polls from the same admin
-        $polls = Poll::where('admin_id', $customer->admin_id)
+        $polls = Poll::query()
             ->where('active', true)
             ->with(['responses' => function ($query) use ($customer) {
                 $query->where('customer_id', $customer->id);
@@ -1482,7 +1496,7 @@ class CustomerController extends Controller
 
         // Validate the poll belongs to the customer's admin and is active
         $poll = Poll::where('id', $pollId)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('active', true)
             ->first();
 
@@ -1540,7 +1554,7 @@ class CustomerController extends Controller
         }
 
         // 1. Get all customers with their full village and family members eager loaded
-        $allBirthdays = Customer::where('admin_id', $customer->admin_id)
+        $allBirthdays = Customer::query()
             ->whereNotNull('date_of_birth')
             ->with(['village', 'familyMembers'])
             ->get();
@@ -1682,7 +1696,7 @@ class CustomerController extends Controller
         }
 
         // 1. Get all customers with anniversaries (Eager loading full village and family relations)
-        $allAnniversaries = Customer::where('admin_id', $customer->admin_id)
+        $allAnniversaries = Customer::query()
             ->whereNotNull('anniversary_date')
             ->with(['village', 'familyMembers']) // Loads structural properties and family context
             ->get();
@@ -1835,7 +1849,7 @@ class CustomerController extends Controller
         }
 
         // Get unique business types and transform them into objects
-        $categories = Customer::where('admin_id', $customer->admin_id)
+        $categories = Customer::query()
             ->whereNotNull('business_type')
             ->where('business_type', '!=', '')
             ->distinct()
@@ -1862,27 +1876,27 @@ class CustomerController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid session.'], 400);
         }
 
-        $galleryCount = GalleryItem::where('admin_id', $customer->admin_id)->where('status', 'active')
+        $galleryCount = GalleryItem::where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })->count();
 
-        $eventCount = Event::where('admin_id', $customer->admin_id)->where('status', 'active')
+        $eventCount = Event::where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })->count();
 
-        $newsCount = News::where('admin_id', $customer->admin_id)->where('status', 'active')
+        $newsCount = News::where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })->count();
 
-        $committeeCount = CommitteePerson::where('admin_id', $customer->admin_id)->where('status', 'active')
+        $committeeCount = CommitteePerson::where('status', 'active')
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })->count();
 
-        $customerCount = Customer::where('admin_id', $customer->admin_id)
+        $customerCount = Customer::query()
             ->whereDoesntHave('viewers', function ($q) use ($customer) {
                 $q->where('user_id', $customer->id);
             })->count();
@@ -1913,17 +1927,16 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        // Get the category from the request (sent when you click the list item)
         $category = $request->query('category');
         $search = $request->query('search');
 
-        $query = Customer::where('admin_id', $customer->admin_id)
+        $query = Customer::query()
             ->whereNotNull('business_name')
             ->where('business_name', '!=', '');
 
-        // IF CATEGORY IS CLICKED: filter the results
+        //  FIX: Filter by business_type column instead of business_name
         if ($category) {
-            $query->where('business_name', $category);
+            $query->where('business_type', $category);
         }
 
         if ($search) {
@@ -1967,7 +1980,7 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        $customers = Customer::where('admin_id', $customer->admin_id)
+        $customers = Customer::query()
             ->where('business_name', $businessName)
             ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
             ->with('village:id,name')
@@ -1993,7 +2006,7 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        $customers = Customer::where('admin_id', $customer->admin_id)
+        $customers = Customer::query()
             ->whereNotNull('business_name')
             ->where('business_name', '!=', '')
             ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
@@ -2028,7 +2041,7 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        $customers = Customer::where('admin_id', $customer->admin_id)
+        $customers = Customer::query()
             ->where('business_name', $business)
             ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
             ->with('village:id,name')
@@ -2057,7 +2070,7 @@ class CustomerController extends Controller
 
         // Validate the event exists and belongs to the same admin
         $event = Event::where('id', $eventId)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('status', 'active')
             ->first();
 
@@ -2120,7 +2133,7 @@ class CustomerController extends Controller
 
         // Validate the event exists and belongs to the same admin
         $event = Event::where('id', $eventId)
-            ->where('admin_id', $customer->admin_id)
+            
             ->where('status', 'active')
             ->first();
 
@@ -2250,7 +2263,7 @@ class CustomerController extends Controller
         }
 
         // Get helpline items from the same admin
-        $helplines = Helpline::where('admin_id', $customer->admin_id)
+        $helplines = Helpline::query()
             ->orderBy('name')
             ->orderBy('heading_name')
             ->get();
@@ -2293,7 +2306,7 @@ class CustomerController extends Controller
 
         // Start Query - Eager load relationships
         $query = Customer::with(['village'])
-            ->where('admin_id', $customer->admin_id)
+            
             ->whereHas('familyMembers', function ($q) use ($gender, $min_age, $max_age, $from_dob, $to_dob) {
                 $q->where('matrimony', true);
 
@@ -2506,74 +2519,74 @@ class CustomerController extends Controller
     }
 
     public function getWishMessage(Request $request)
-{
-    // 1. Validate incoming parameters
-    $request->validate([
-        'id' => 'required|integer',
-        'type' => 'required|in:customer,family_member',
-        'event_type' => 'required|in:birthday,anniversary',
-    ]);
+    {
+        // 1. Validate incoming parameters
+        $request->validate([
+            'id' => 'required|integer',
+            'type' => 'required|in:customer,family_member',
+            'event_type' => 'required|in:birthday,anniversary',
+        ]);
 
-    $id = $request->input('id');
-    $type = $request->input('type');
-    $eventType = $request->input('event_type');
-    
-    $recipientName = '';
-    $recipientMobile = '';
+        $id = $request->input('id');
+        $type = $request->input('type');
+        $eventType = $request->input('event_type');
 
-    // 2. Fetch the correct model record to extract identity details
-    if ($type === 'customer') {
-        $target = Customer::find($id);
-        if (!$target) {
-            return response()->json(['status' => 'error', 'message' => 'Customer not found.'], 404);
+        $recipientName = '';
+        $recipientMobile = '';
+
+        // 2. Fetch the correct model record to extract identity details
+        if ($type === 'customer') {
+            $target = Customer::find($id);
+            if (!$target) {
+                return response()->json(['status' => 'error', 'message' => 'Customer not found.'], 404);
+            }
+            $recipientName = ucwords(strtolower($target->name));
+            $recipientMobile = $target->mobile;
+        } else {
+            $target = FamilyMember::find($id);
+            if (!$target) {
+                return response()->json(['status' => 'error', 'message' => 'Family member not found.'], 404);
+            }
+            $recipientName = ucwords(strtolower($target->name));
+            // Fall back to parent customer mobile if family member doesn't have a distinct mobile line
+            $recipientMobile = $target->mobile ?? $target->customer?->mobile;
         }
-        $recipientName = ucwords(strtolower($target->name));
-        $recipientMobile = $target->mobile;
-    } else {
-        $target = FamilyMember::find($id);
-        if (!$target) {
-            return response()->json(['status' => 'error', 'message' => 'Family member not found.'], 404);
-        }
-        $recipientName = ucwords(strtolower($target->name));
-        // Fall back to parent customer mobile if family member doesn't have a distinct mobile line
-        $recipientMobile = $target->mobile ?? $target->customer?->mobile;
-    }
 
-    // Fail early if there is no valid phone number associated with the entity
-    if (empty($recipientMobile)) {
+        // Fail early if there is no valid phone number associated with the entity
+        if (empty($recipientMobile)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This member does not have a registered mobile number.'
+            ], 422);
+        }
+
+        // 3. Construct the customized text template package based on event rules
+        if ($eventType === 'birthday') {
+            $message = "Hi {$recipientName}! 🎉\n\nWishing you a fantastic birthday filled with joy, laughter, and great health. Have an amazing day ahead! 🎂✨";
+        } else {
+            $message = "Hi {$recipientName}! 🥂\n\nWishing you a beautiful wedding anniversary! May your journey together continue to be blessed with love and companionship. 💑🎉";
+        }
+
+        // 4. Sanitize and format the destination mobile string for WhatsApp Global Dial Plan compliance
+        // Strip everything except raw digits
+        $cleanMobile = preg_replace('/[^0-9]/', '', $recipientMobile);
+
+        // Prefix country code if it looks like a standard 10-digit regional line (e.g., India prefix 91)
+        if (strlen($cleanMobile) === 10) {
+            $cleanMobile = '91' . $cleanMobile;
+        }
+
+        // 5. Generate secure API query strings via raw URL encoding
+        $whatsappUrl = "https://api.whatsapp.com/send?phone=" . $cleanMobile . "&text=" . rawurlencode($message);
+
         return response()->json([
-            'status' => 'error', 
-            'message' => 'This member does not have a registered mobile number.'
-        ], 422);
+            'status' => 'success',
+            'data' => [
+                'name' => $recipientName,
+                'mobile' => $recipientMobile,
+                'message' => $message,
+                'whatsapp_url' => $whatsappUrl
+            ]
+        ]);
     }
-
-    // 3. Construct the customized text template package based on event rules
-    if ($eventType === 'birthday') {
-        $message = "Hi {$recipientName}! 🎉\n\nWishing you a fantastic birthday filled with joy, laughter, and great health. Have an amazing day ahead! 🎂✨";
-    } else {
-        $message = "Hi {$recipientName}! 🥂\n\nWishing you a beautiful wedding anniversary! May your journey together continue to be blessed with love and companionship. 💑🎉";
-    }
-
-    // 4. Sanitize and format the destination mobile string for WhatsApp Global Dial Plan compliance
-    // Strip everything except raw digits
-    $cleanMobile = preg_replace('/[^0-9]/', '', $recipientMobile);
-    
-    // Prefix country code if it looks like a standard 10-digit regional line (e.g., India prefix 91)
-    if (strlen($cleanMobile) === 10) {
-        $cleanMobile = '91' . $cleanMobile;
-    }
-
-    // 5. Generate secure API query strings via raw URL encoding
-    $whatsappUrl = "https://api.whatsapp.com/send?phone=" . $cleanMobile . "&text=" . rawurlencode($message);
-
-    return response()->json([
-        'status' => 'success',
-        'data' => [
-            'name' => $recipientName,
-            'mobile' => $recipientMobile,
-            'message' => $message,
-            'whatsapp_url' => $whatsappUrl
-        ]
-    ]);
-}
 }

@@ -21,7 +21,7 @@ class VillageController extends Controller
      */
     public function index()
     {
-        $villages = Village::where('admin_id', $this->getAdminId())
+        $villages = Village::query()
                          ->orderBy('created_at', 'desc')
                          ->paginate(10); 
                                    
@@ -61,9 +61,7 @@ class VillageController extends Controller
     public function edit(Village $village)
     {
         // Authorization check: Ensure admin can only edit their own entries
-        if ($village->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
 
         return view('admin.village.edit', compact('village'));
     }
@@ -74,9 +72,7 @@ class VillageController extends Controller
     public function update(Request $request, Village $village)
     {
         // Authorization check
-        if ($village->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $request->validate([
             'name' => 'required|string|max:200|unique:villages,name,' . $village->id,
@@ -97,9 +93,7 @@ class VillageController extends Controller
     public function destroy(Village $village)
     {
         // Authorization check
-        if ($village->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $village->delete();
         

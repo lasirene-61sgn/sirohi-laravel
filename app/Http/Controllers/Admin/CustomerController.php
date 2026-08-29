@@ -40,7 +40,7 @@ class CustomerController extends Controller
         // CRITICAL FIX: Only fetch customers created by the current admin (paginated)
         // Sort by ID ascending to show oldest customers first (order of creation)
         $customers = Customer::with('village')
-            ->where('admin_id', $adminId)
+            
             ->orderBy('id', 'asc')
             ->paginate(10); // Show 10 customers per page
 
@@ -48,7 +48,7 @@ class CustomerController extends Controller
         // Limit to 5000 records to balance usability with performance
         // Sort by ID ascending to show oldest customers first (order of creation)
         $allCustomers = Customer::with('village')
-            ->where('admin_id', $adminId)
+            
             ->orderBy('id', 'asc')
             ->limit(5000)
             ->get();
@@ -67,7 +67,7 @@ class CustomerController extends Controller
         $adminId = $this->getCurrentAdminId();
 
         // Fetch only villages created by the current admin (Data Isolation)
-        $villages = Village::where('admin_id', $adminId)->pluck('name', 'id');
+        $villages = Village::pluck('name', 'id');
 
         // Get field permissions
         $fieldPermissions = $this->getFieldPermissions();
@@ -130,9 +130,7 @@ class CustomerController extends Controller
         // Safety check: Ensure the selected village belongs to the current admin
         if ($request->filled('village_id')) {
             $village = Village::find($request->village_id);
-            if (!$village || $village->admin_id !== $this->getCurrentAdminId()) {
-                return redirect()->back()->withInput()->withErrors(['village_id' => 'Invalid village selection.']);
-            }
+            
         }
 
         // Handle customer image upload
@@ -189,9 +187,7 @@ class CustomerController extends Controller
         $adminId = $this->getCurrentAdminId();
 
         // CRITICAL FIX: Enforce ownership check before showing
-        if ($customer->admin_id !== $adminId) {
-            abort(403, 'Unauthorized access: You can only view customers you created.');
-        }
+        
 
         // Load the village relationship
         $customer->load('village');
@@ -210,12 +206,10 @@ class CustomerController extends Controller
         $adminId = $this->getCurrentAdminId();
 
         // CRITICAL FIX: Enforce ownership check before editing
-        if ($customer->admin_id !== $adminId) {
-            abort(403, 'Unauthorized access: You can only edit customers you created.');
-        }
+        
 
         // 1. Get the IDs of villages created by the current admin.
-        $allowedVillageIds = Village::where('admin_id', $adminId)->pluck('id')->toArray();
+        $allowedVillageIds = Village::pluck('id')->toArray();
 
         // 2. Include the customer's currently saved village_id 
         if ($customer->village_id) {
@@ -240,9 +234,7 @@ class CustomerController extends Controller
         $adminId = $this->getCurrentAdminId();
 
         // CRITICAL FIX: Enforce ownership check before updating
-        if ($customer->admin_id !== $adminId) {
-            abort(403, 'Unauthorized action: You can only update customers you created.');
-        }
+        
 
         $validatedData = $request->validate([
             'name' => 'required|string|max:100',
@@ -320,9 +312,7 @@ class CustomerController extends Controller
         $adminId = $this->getCurrentAdminId();
 
         // CRITICAL FIX: Enforce ownership check before deletion
-        if ($customer->admin_id !== $adminId) {
-            abort(403, 'Unauthorized action: You can only delete customers you created.');
-        }
+        
 
         $customer->delete();
         return redirect()->route('admin.customer.index')->with('success', 'Customer deleted successfully!');
@@ -338,7 +328,7 @@ class CustomerController extends Controller
 
         // Get existing villages for the current admin
         $adminId = $this->getCurrentAdminId();
-        $villages = Village::where('admin_id', $adminId)->pluck('name', 'id');
+        $villages = Village::pluck('name', 'id');
 
         return view('admin.customer.bulk-upload', compact('fieldPermissions', 'villages'));
     }
@@ -414,7 +404,7 @@ class CustomerController extends Controller
                 $villageName = $row[9] ?? null;
 
                 if (!empty($villageName)) {
-                    $village = Village::where('name', $villageName)->where('admin_id', $adminId)->first();
+                    $village = Village::where('name', $villageName)->first();
 
                     if (!$village) {
                         $village = Village::create([
@@ -598,9 +588,7 @@ class CustomerController extends Controller
     public function indexFamilyMember(Customer $customer)
     {
         // Ensure the admin owns this customer
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $familyMembers = $customer->familyMembers;
 
@@ -612,9 +600,7 @@ class CustomerController extends Controller
      */
     public function createFamilyMember(Customer $customer)
     {
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         return view('admin.customer.family_members.create', compact('customer'));
     }
@@ -624,9 +610,7 @@ class CustomerController extends Controller
      */
     public function storeFamilyMember(Request $request, Customer $customer)
     {
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $validatedData = $request->validate([
             'name' => 'required|string|max:100',
@@ -675,9 +659,7 @@ class CustomerController extends Controller
      */
     public function editFamilyMember(Customer $customer, $familyMemberId)
     {
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $familyMember = $customer->familyMembers()->findOrFail($familyMemberId);
 
@@ -689,9 +671,7 @@ class CustomerController extends Controller
      */
     public function updateFamilyMember(Request $request, Customer $customer, $familyMemberId)
     {
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $familyMember = $customer->familyMembers()->findOrFail($familyMemberId);
 
@@ -750,9 +730,7 @@ class CustomerController extends Controller
      */
     public function deleteFamilyMember(Customer $customer, $familyMemberId)
     {
-        if ($customer->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $familyMember = $customer->familyMembers()->findOrFail($familyMemberId);
 

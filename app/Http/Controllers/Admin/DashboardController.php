@@ -35,19 +35,19 @@ class DashboardController extends Controller
         }
         
         // Get counts for various entities
-        $customersCount = Customer::where('admin_id', $adminId)->count();
-        $villagesCount = Village::where('admin_id', $adminId)->count();
-        $committeeMembersCount = CommitteePerson::where('admin_id', $adminId)->count();
-        $supportMembersCount = Support::where('admin_id', $adminId)->count();
-        $galleryItemsCount = GalleryItem::where('admin_id', $adminId)->count();
-        $bannersCount = Banner::where('admin_id', $adminId)->count();
-        $noticesCount = Notice::where('admin_id', $adminId)->count();
-        $eventsCount = Event::where('admin_id', $adminId)->count();
-        $newsCount = News::where('admin_id', $adminId)->count();
-        $pollsCount = Poll::where('admin_id', $adminId)->count();
+        $customersCount = Customer::count();
+        $villagesCount = Village::count();
+        $committeeMembersCount = CommitteePerson::count();
+        $supportMembersCount = Support::count();
+        $galleryItemsCount = GalleryItem::count();
+        $bannersCount = Banner::count();
+        $noticesCount = Notice::count();
+        $eventsCount = Event::count();
+        $newsCount = News::count();
+        $pollsCount = Poll::count();
         
         // Get recently added customers (last 8)
-        $recentCustomers = Customer::where('admin_id', $adminId)
+        $recentCustomers = Customer::query()
             ->orderBy('created_at', 'desc')
             ->limit(8)
             ->get();

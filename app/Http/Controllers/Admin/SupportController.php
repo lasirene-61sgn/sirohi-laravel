@@ -21,7 +21,7 @@ class SupportController extends Controller
         
         // Build the query for support entries
         $query = Support::with(['supportType', 'supportCategory'])
-            ->where('admin_id', $adminId);
+            ;
             
         // Apply category filter if selected
         if ($categoryId) {
@@ -32,7 +32,7 @@ class SupportController extends Controller
         $supports = $query->orderBy('id', 'asc')->paginate(10);
         
         // Get all support categories for the current admin (for filter dropdown)
-        $supportCategories = SupportCategory::where('admin_id', $adminId)
+        $supportCategories = SupportCategory::query()
             ->orderBy('name', 'asc')
             ->get();
         
@@ -42,8 +42,8 @@ class SupportController extends Controller
     public function create()
     {
         // Get only support types and categories created by the current admin
-        $supportTypes = SupportType::where('admin_id', Auth::guard('admin')->id())->get();
-        $supportCategories = SupportCategory::where('admin_id', Auth::guard('admin')->id())->get();
+        $supportTypes = SupportType::get();
+        $supportCategories = SupportCategory::get();
         return view('admin.supports.create', compact('supportTypes', 'supportCategories'));
     }
 
@@ -79,21 +79,17 @@ class SupportController extends Controller
     public function edit(Support $support) // Uses route model binding
     {
         // Ensure the support entry belongs to the current admin
-        if ($support->admin_id !== Auth::guard('admin')->id()) {
-            abort(403, 'Unauthorized access to support entry.');
-        }
         
-        $supportTypes = SupportType::where('admin_id', Auth::guard('admin')->id())->get();
-        $supportCategories = SupportCategory::where('admin_id', Auth::guard('admin')->id())->get();
+        
+        $supportTypes = SupportType::get();
+        $supportCategories = SupportCategory::get();
         return view('admin.supports.edit', compact('support', 'supportTypes', 'supportCategories'));
     }
 
     public function update(Request $request, Support $support)
     {
         // Ensure the support entry belongs to the current admin
-        if ($support->admin_id !== Auth::guard('admin')->id()) {
-            abort(403, 'Unauthorized access to support entry.');
-        }
+        
         
         $request->validate([
             'name' => 'required|string|max:255',
@@ -124,9 +120,7 @@ class SupportController extends Controller
     public function destroy(Support $support)
     {
         // Ensure the support entry belongs to the current admin
-        if ($support->admin_id !== Auth::guard('admin')->id()) {
-            abort(403, 'Unauthorized access to support entry.');
-        }
+        
         
         // Delete associated image file
         if ($support->image) {

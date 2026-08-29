@@ -13,7 +13,7 @@ class HelplineController extends Controller
     }
 
     public function index(){
-        $helplines = Helpline::where('admin_id', $this->getAdminId())
+        $helplines = Helpline::query()
             ->orderBy('name')
             ->orderBy('heading_name')
             ->get()
@@ -41,16 +41,12 @@ class HelplineController extends Controller
     }
 
     public function edit(Helpline $helpline){
-        if($helpline->admin_id !== $this->getAdminId()){
-            abort(403);
-        }
+        
         return view('admin.helpline.edit', compact('helpline'));
     }
 
     public function update(Request $request, Helpline $helpline){
-        if($helpline->admin_id !== $this->getAdminId()){
-            abort(403);
-        }
+        
         $validated = $request->validate([
             'name' => 'nullable',
             'heading_name' => 'nullable',
@@ -64,9 +60,7 @@ class HelplineController extends Controller
     }
 
     public function destroy(Helpline $helpline){
-        if($helpline->admin_id !== $this->getAdminId()){
-            abort(403);
-        }
+        
         $helpline->delete();
         return redirect()->route('admin.helpline.index')->with('success', 'Helpline Deleted Success');
     }

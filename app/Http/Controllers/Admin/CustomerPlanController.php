@@ -24,7 +24,7 @@ class CustomerPlanController extends Controller
         $adminId = $this->getCurrentAdminId();
         // Fetch plans related to customers created by the current admin
         $plans = CustomerPlan::with('customer')
-                            ->where('admin_id', $adminId)
+                            
                             ->latest()
                             ->get();
 
@@ -39,7 +39,7 @@ class CustomerPlanController extends Controller
         $adminId = $this->getCurrentAdminId();
         
         // CRITICAL: Fetch ONLY customers created by the current admin for the dropdown
-        $customers = Customer::where('admin_id', $adminId)->pluck('name', 'id');
+        $customers = Customer::pluck('name', 'id');
         
         return view('admin.customer_plan.create', compact('customers'));
     }
@@ -51,7 +51,7 @@ class CustomerPlanController extends Controller
     {
         $customer = Customer::with('village')
                             ->where('id', $customerId)
-                            ->where('admin_id', $this->getCurrentAdminId())
+                            
                             ->firstOrFail();
 
         return response()->json([
@@ -96,9 +96,7 @@ class CustomerPlanController extends Controller
      */
     public function edit(CustomerPlan $customerPlan)
     {
-        if ($customerPlan->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
         
         // Fetch only the specific customer for the dropdown (since we don't need the whole list here)
         $customers = Customer::where('id', $customerPlan->customer_id)->pluck('name', 'id');
@@ -111,9 +109,7 @@ class CustomerPlanController extends Controller
      */
     public function update(Request $request, CustomerPlan $customerPlan)
     {
-        if ($customerPlan->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
 
         $validatedData = $request->validate([
             'customer_id' => 'required|exists:customers,id',
@@ -140,9 +136,7 @@ class CustomerPlanController extends Controller
      */
     public function destroy(CustomerPlan $customerPlan)
     {
-        if ($customerPlan->admin_id !== $this->getCurrentAdminId()) {
-            abort(403, 'Unauthorized action.');
-        }
+        
         
         $customerPlan->delete();
         

@@ -19,7 +19,7 @@ class CommitteePersonController extends Controller
         }
         
         $adminId = Auth::guard('admin')->id();
-        $people = CommitteePerson::where('admin_id', $adminId)->orderBy('sort_order', 'asc')->paginate(10);
+        $people = CommitteePerson::orderBy('sort_order', 'asc')->paginate(10);
         return view('admin.committee_person.index', compact('people'));
     }
 

@@ -21,7 +21,7 @@ class NoticeController extends Controller
      */
     public function index()
     {
-        $notices = Notice::where('admin_id', $this->getAdminId())
+        $notices = Notice::query()
                          ->orderBy('created_at', 'desc')
                          ->paginate(10); 
                                    
@@ -63,9 +63,7 @@ class NoticeController extends Controller
     public function edit(Notice $notice)
     {
         // Authorization check: Ensure admin can only edit their own notices
-        if ($notice->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
 
         return view('admin.notice.edit', compact('notice'));
     }
@@ -76,9 +74,7 @@ class NoticeController extends Controller
     public function update(Request $request, Notice $notice)
     {
         // Authorization check
-        if ($notice->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $request->validate([
             'name' => 'required|string|max:200',
@@ -101,9 +97,7 @@ class NoticeController extends Controller
     public function destroy(Notice $notice)
     {
         // Authorization check
-        if ($notice->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $notice->delete();
         

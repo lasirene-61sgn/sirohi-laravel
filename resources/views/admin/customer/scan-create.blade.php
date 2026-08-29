@@ -170,7 +170,10 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('{{ route("admin.customer.scan-card") }}', {
             method: 'POST',
             body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'ngrok-skip-browser-warning': '1'
+            }
         })
         .then(response => {
             // If the server crashes with a real 500 error, we capture its actual text body instead of breaking

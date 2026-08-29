@@ -17,7 +17,7 @@ class BillController extends Controller
     public function index()
     {
         $admin = Auth::guard('admin')->user();
-        $bills = Bill::where('admin_id', $admin->id)
+        $bills = Bill::query()
             ->with('customer')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -32,7 +32,7 @@ class BillController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         // Get customers with paid plans
-        $customers = Customer::where('admin_id', $admin->id)
+        $customers = Customer::query()
             ->whereHas('customerPlans', function ($query) {
                 $query->where('status', 'active');
             })
@@ -80,9 +80,7 @@ class BillController extends Controller
     public function show(Bill $bill)
     {
         // Ensure the bill belongs to the authenticated admin
-        if ($bill->admin_id !== Auth::guard('admin')->id()) {
-            abort(403);
-        }
+        
 
         return view('admin.bills.show', compact('bill'));
     }
@@ -93,13 +91,11 @@ class BillController extends Controller
     public function edit(Bill $bill)
     {
         // Ensure the bill belongs to the authenticated admin
-        if ($bill->admin_id !== Auth::guard('admin')->id()) {
-            abort(403);
-        }
+        
 
         $admin = Auth::guard('admin')->user();
         // Get customers with paid plans
-        $customers = Customer::where('admin_id', $admin->id)
+        $customers = Customer::query()
             ->whereHas('customerPlans', function ($query) {
                 $query->where('status', 'active');
             })
@@ -115,9 +111,7 @@ class BillController extends Controller
     public function update(Request $request, Bill $bill)
     {
         // Ensure the bill belongs to the authenticated admin
-        if ($bill->admin_id !== Auth::guard('admin')->id()) {
-            abort(403);
-        }
+        
 
         $validatedData = $request->validate([
             'customer_id' => 'required|exists:customers,id,admin_id,'.$bill->admin_id,
@@ -141,9 +135,7 @@ class BillController extends Controller
     public function destroy(Bill $bill)
     {
         // Ensure the bill belongs to the authenticated admin
-        if ($bill->admin_id !== Auth::guard('admin')->id()) {
-            abort(403);
-        }
+        
 
         $bill->delete();
 
@@ -157,7 +149,7 @@ class BillController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         $customer = Customer::where('id', $customerId)
-            ->where('admin_id', $admin->id)
+            
             ->first();
 
         if (!$customer) {

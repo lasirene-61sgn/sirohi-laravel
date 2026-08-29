@@ -15,7 +15,7 @@ class PollController extends Controller
      */
     public function index()
     {
-        $polls = Poll::where('admin_id', Auth::guard('admin')->id())
+        $polls = Poll::query()
             ->withCount('responses')
             ->latest()
             ->paginate(10);
@@ -55,7 +55,7 @@ class PollController extends Controller
      */
     public function show(string $id)
     {
-        $poll = Poll::where('admin_id', Auth::guard('admin')->id())
+        $poll = Poll::query()
             ->with('responses.customer')
             ->findOrFail($id);
             
@@ -67,7 +67,7 @@ class PollController extends Controller
      */
     public function edit(string $id)
     {
-        $poll = Poll::where('admin_id', Auth::guard('admin')->id())
+        $poll = Poll::query()
             ->findOrFail($id);
             
         return view('admin.polls.edit', compact('poll'));
@@ -78,7 +78,7 @@ class PollController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $poll = Poll::where('admin_id', Auth::guard('admin')->id())
+        $poll = Poll::query()
             ->findOrFail($id);
             
         $request->validate([
@@ -100,7 +100,7 @@ class PollController extends Controller
      */
     public function destroy(string $id)
     {
-        $poll = Poll::where('admin_id', Auth::guard('admin')->id())
+        $poll = Poll::query()
             ->findOrFail($id);
             
         $poll->delete();
@@ -114,7 +114,7 @@ class PollController extends Controller
      */
     public function toggleActive(Request $request, string $id)
     {
-        $poll = Poll::where('admin_id', Auth::guard('admin')->id())
+        $poll = Poll::query()
             ->findOrFail($id);
             
         $poll->update(['active' => !$poll->active]);

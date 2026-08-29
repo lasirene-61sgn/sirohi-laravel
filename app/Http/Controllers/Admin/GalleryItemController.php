@@ -25,7 +25,7 @@ class GalleryItemController extends Controller
      */
     public function index()
     {
-        $galleryItems = GalleryItem::where('admin_id', $this->getAdminId())
+        $galleryItems = GalleryItem::query()
                                    ->orderBy('created_at', 'desc')
                                    ->paginate(10); 
                                    

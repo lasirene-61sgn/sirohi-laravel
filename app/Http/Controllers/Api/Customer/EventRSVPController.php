@@ -37,6 +37,15 @@ class EventRSVPController extends Controller
                 'message' => 'Event not found or access denied.'
             ], 404);
         }
+
+        $isPastDeadline = \Carbon\Carbon::now()->startOfDay() > \Carbon\Carbon::parse($event->posted_date)->startOfDay();
+
+        if ($isPastDeadline) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The RSVP deadline for this event has passed.'
+            ], 403);
+        }
         
         // Validate request data
         $rules = [

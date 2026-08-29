@@ -25,7 +25,7 @@ class NewsController extends Controller
      */
     public function index()
     {
-        $newsItems = News::where('admin_id', $this->getAdminId())
+        $newsItems = News::query()
                          ->orderBy('posted_date', 'desc')
                          ->paginate(10); 
                                    
@@ -86,9 +86,7 @@ class NewsController extends Controller
     public function edit(News $news)
     {
         // Authorization check: Ensure admin can only edit their own entries
-        if ($news->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
 
         return view('admin.news.edit', compact('news'));
     }
@@ -99,9 +97,7 @@ class NewsController extends Controller
     public function update(Request $request, News $news, NotificationsService $notificationService)
     {
         // Authorization check
-        if ($news->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         $request->validate([
             'title' => 'required|string|max:255',
@@ -146,9 +142,7 @@ class NewsController extends Controller
     public function destroy(News $news)
     {
         // Authorization check
-        if ($news->admin_id !== $this->getAdminId()) {
-            abort(403);
-        }
+        
         
         Storage::disk('public')->delete($news->image_path);
         $news->delete();
