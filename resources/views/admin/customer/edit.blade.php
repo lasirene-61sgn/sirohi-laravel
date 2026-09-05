@@ -76,6 +76,7 @@
         <form action="{{ route('admin.customer.update', $customer->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
+            <input type="hidden" name="previous_url" value="{{ old('previous_url', url()->previous()) }}">
 
             {{-- Personal Details Row 1 (Name, Image, Father Name, Gotra) --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">

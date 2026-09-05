@@ -33,25 +33,36 @@ class CustomerController extends Controller
     /**
      * Display a listing of the resource (Index).
      */
-    public function index()
+    public function index(Request $request)
     {
         $adminId = $this->getCurrentAdminId();
+        $search = $request->input('search');
+
+        $query = Customer::with('village')->orderBy('id', 'asc');
+        $allCustomersQuery = Customer::with('village')->orderBy('id', 'asc')->limit(5000);
+
+        if ($search) {
+            $searchClosure = function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('mobile', 'like', "%{$search}%")
+                  ->orWhere('admin_customer_id', 'like', "%{$search}%")
+                  ->orWhereHas('village', function ($vq) use ($search) {
+                      $vq->where('name', 'like', "%{$search}%");
+                  });
+            };
+            
+            $query->where($searchClosure);
+            $allCustomersQuery->where($searchClosure);
+        }
 
         // CRITICAL FIX: Only fetch customers created by the current admin (paginated)
         // Sort by ID ascending to show oldest customers first (order of creation)
-        $customers = Customer::with('village')
-            
-            ->orderBy('id', 'asc')
-            ->paginate(10); // Show 10 customers per page
+        $customers = $query->paginate(10)->appends(['search' => $search]);
 
         // Get all customers for printing (without pagination)
         // Limit to 5000 records to balance usability with performance
         // Sort by ID ascending to show oldest customers first (order of creation)
-        $allCustomers = Customer::with('village')
-            
-            ->orderBy('id', 'asc')
-            ->limit(5000)
-            ->get();
+        $allCustomers = $allCustomersQuery->get();
 
         // Get field permissions
         $fieldPermissions = $this->getFieldPermissions();
@@ -300,6 +311,11 @@ class CustomerController extends Controller
         }
 
         $customer->update($validatedData);
+
+        $previousUrl = $request->input('previous_url');
+        if ($previousUrl && $previousUrl !== url()->current()) {
+            return redirect($previousUrl)->with('success', 'Customer updated successfully!');
+        }
 
         return redirect()->route('admin.customer.index')->with('success', 'Customer updated successfully!');
     }

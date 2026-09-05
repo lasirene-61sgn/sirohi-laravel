@@ -1582,7 +1582,7 @@ class CustomerController extends Controller
         $monthNames = [
             1 => 'January',
             2 => 'February',
-            2 => 'March',
+            3 => 'March',
             4 => 'April',
             5 => 'May',
             6 => 'June',
@@ -1942,7 +1942,7 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        $category = $request->query('category');
+        $category = $request->query('category_name') ?? $request->query('category');
         $search = $request->query('search');
 
         $query = Customer::query()
