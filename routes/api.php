@@ -157,6 +157,7 @@ Route::prefix('customer')->group(function () {
 
         // Family Members
         Route::get('/family-members', [CustomerApiController::class, 'listFamilyMembers']);
+        Route::get('/family-members/bio-links', [CustomerApiController::class, 'listFamilyMemberBioLinks']);
         Route::get('/family-members/{id}', [CustomerApiController::class, 'showFamilyMember']);
         Route::post('/family-members', [CustomerApiController::class, 'createFamilyMember']);
         Route::put('/family-members/{id}', [CustomerApiController::class, 'updateFamilyMember']);

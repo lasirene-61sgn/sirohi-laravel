@@ -103,10 +103,26 @@
                         name="image">
                     @if($customer->image)
                     <div class="mt-2">
-                        <img src="{{ asset('storage/' . $customer->image) }}" alt="Customer Image" class="w-24 h-24 object-cover rounded-md border border-gray-200">
+                        <img src="{{ asset(strpos($customer->image, 'uploads/') === 0 ? $customer->image : 'storage/' . $customer->image) }}" alt="Customer Image" class="w-24 h-24 object-cover rounded-md border border-gray-200">
                     </div>
                     @endif
                     @error('image')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                @endif
+                
+                @if(empty($fieldPermissions) || in_array('background_image', $fieldPermissions))
+                <div class="mb-3 md:mb-0">
+                    <label for="background_image" class="block text-sm font-medium text-gray-700 mb-1 form-label">Background Image</label>
+                    <input type="file"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer @error('background_image') border-red-500 @enderror"
+                        id="background_image"
+                        name="background_image">
+                    @if($customer->background_image)
+                    <div class="mt-2">
+                        <img src="{{ asset(strpos($customer->background_image, 'uploads/') === 0 ? $customer->background_image : 'storage/' . $customer->background_image) }}" alt="Customer Background Image" class="w-24 h-24 object-cover rounded-md border border-gray-200">
+                    </div>
+                    @endif
+                    @error('background_image')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 @endif
 
@@ -623,19 +639,6 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
     </div>
 
-    <div class="mb-3 md:mb-0">
-        <label for="background_image" class="block text-sm font-medium text-gray-700 mb-1 form-label">background_image</label>
-        <input type="file"
-            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer @error('background_image') border-red-500 @enderror"
-            id="background_image"
-            name="background_image">
-        @if($customer->background_image)
-        <div class="mt-2">
-            <img src="{{ asset('storage/' . $customer->background_image) }}" alt="Customer background_image" class="w-24 h-24 object-cover rounded-md border border-gray-200">
-        </div>
-        @endif
-        @error('background_image')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
-    </div>
 
     {{-- Submission Buttons --}}
     <div class="pt-4 border-t border-gray-100 flex gap-3">

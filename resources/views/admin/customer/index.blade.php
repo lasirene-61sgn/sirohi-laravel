@@ -217,7 +217,7 @@
                         @if(empty($fieldPermissions) || in_array('image', $fieldPermissions))
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @if($customer->image)
-                            <img src="{{ asset('storage/' . $customer->image) }}" alt="Customer Image" class="w-10 h-10 object-cover rounded-md mx-auto border border-gray-200 shadow-sm">
+                            <img src="{{ asset(strpos($customer->image, 'uploads/') === 0 ? $customer->image : 'storage/' . $customer->image) }}" alt="Customer Image" class="w-10 h-10 object-cover rounded-md mx-auto border border-gray-200 shadow-sm">
                             @else
                             <div class="w-10 h-10 bg-gray-100 rounded-md mx-auto flex items-center justify-center text-gray-500 text-xs">N/A</div>
                             @endif

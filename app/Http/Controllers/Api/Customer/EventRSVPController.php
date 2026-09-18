@@ -25,9 +25,8 @@ class EventRSVPController extends Controller
             ], 400);
         }
         
-        // Validate the event exists and belongs to the same admin
+        // Validate the event exists
         $event = Event::where('id', $eventId)
-            ->where('admin_id', $customer->admin_id)
             ->where('status', 'active')
             ->first();
             
@@ -97,9 +96,8 @@ class EventRSVPController extends Controller
             ], 400);
         }
         
-        // Validate the event exists and belongs to the same admin
+        // Validate the event exists
         $event = Event::where('id', $eventId)
-            ->where('admin_id', $customer->admin_id)
             ->where('status', 'active')
             ->first();
             

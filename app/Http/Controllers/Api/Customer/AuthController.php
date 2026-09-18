@@ -192,7 +192,7 @@ class AuthController extends Controller
     } else {
         // First-time or reset OTP logic
         if (!$request->filled('otp') || !$customer->otp || $customer->otp !== $request->otp) {
-             return response()->json(['status' => 'error', 'message' => 'Invalid or missing OTP'], 400);
+             return response()->json(['status' => 'error', 'message' => 'Use First time user register with otp'], 400);
         }
         if (!$customer->otp_expires_at || $customer->otp_expires_at->isPast()) {
             return response()->json(['status' => 'error', 'message' => 'OTP has expired'], 400);
