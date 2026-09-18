@@ -28,6 +28,7 @@ class FamilyMember extends Model
         'gender',    // New field for gender
         'link',
         'pdf',
+        'biolink',
     ];
 
     protected $casts = [

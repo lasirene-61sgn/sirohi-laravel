@@ -88,6 +88,14 @@
                     </div>
 
                     <div class="col-md-12">
+                        <label class="form-label">Bio Data Link</label>
+                        <input type="url" name="biolink" class="form-control @error('biolink') is-invalid @enderror" value="{{ old('biolink', $familyMember->biolink) }}" placeholder="https://example.com">
+                        @error('biolink')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-12">
                         <label class="form-label d-block">Profile Image</label>
                         @if($familyMember->image)
                             <div class="mb-2">

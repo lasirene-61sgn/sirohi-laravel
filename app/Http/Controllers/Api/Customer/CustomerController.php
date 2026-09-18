@@ -22,6 +22,8 @@ use App\Models\EventRSVP;
 use App\Models\Helpline;
 use App\Models\Link;
 use App\Models\Mobileindex;
+use App\Models\Category;
+use App\Models\SubCategory;
 use App\Services\RealTimeNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -97,9 +99,9 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:100',
             'age' => 'nullable|integer|min:0|max:150',
             'gender' => 'nullable|in:male,female,other',
-            'business_type' => 'nullable|string|max:100',
+            'subcategory_id' => 'nullable',
             'business_name' => 'nullable|string|max:100',
-            'product_service' => 'nullable|string|max:100',
+            'category_id' => 'nullable',
             'office_address' => 'nullable|string|max:500',
             'education' => 'nullable|string|max:255',
             'occupation' => 'nullable|string|max:255',
@@ -122,6 +124,21 @@ class CustomerController extends Controller
             // FIX 3: Fixed folder path string structure to include missing slashes
             $background_image->move(public_path('uploads/customer_backgrounds'), $imageName);
             $validatedData['background_image'] = 'uploads/customer_backgrounds/' . $imageName;
+        }
+
+        // Handle custom category
+        if ($request->filled('category_id') && !is_numeric($request->category_id)) {
+            $category = Category::firstOrCreate(['name' => $request->category_id]);
+            $validatedData['category_id'] = $category->id;
+        }
+
+        // Handle custom subcategory
+        if ($request->filled('subcategory_id') && !is_numeric($request->subcategory_id)) {
+            $subcategory = SubCategory::firstOrCreate([
+                'name' => $request->subcategory_id,
+                'category_id' => $validatedData['category_id'] ?? $customer->category_id
+            ]);
+            $validatedData['subcategory_id'] = $subcategory->id;
         }
 
         $customer->update($validatedData);
@@ -468,8 +485,7 @@ class CustomerController extends Controller
         $search = $request->query('search');
 
         // 3. Base Query to Eager Load relations
-        $query = Customer::with(['village', 'familyMembers'])
-            ;
+        $query = Customer::with(['village', 'familyMembers', 'category', 'subcategory']);
 
         // 4. Apply search filter
         if ($search) {
@@ -479,9 +495,14 @@ class CustomerController extends Controller
                     ->orWhere('whatsapp', 'LIKE', '%' . $search . '%')
                     ->orWhere('email', 'LIKE', '%' . $search . '%')
                     ->orWhere('business_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('business_type', 'LIKE', '%' . $search . '%')
                     ->orWhere('gotra', 'LIKE', '%' . $search . '%')
-                    ->orWhere('father_name', 'LIKE', '%' . $search . '%');
+                    ->orWhere('father_name', 'LIKE', '%' . $search . '%')
+                    ->orWhereHas('category', function($cq) use ($search) {
+                        $cq->where('name', 'LIKE', '%' . $search . '%');
+                    })
+                    ->orWhereHas('subcategory', function($scq) use ($search) {
+                        $scq->where('name', 'LIKE', '%' . $search . '%');
+                    });
             });
         }
 
@@ -1048,15 +1069,77 @@ class CustomerController extends Controller
         $data = $committeeMembers->map(function ($member) {
             $memberArray = $member->toArray();
 
-            if ($member->image_path) {
-                $memberArray['image_path'] = (strpos($member->image_path, 'uploads/') === 0)
-                    ? url($member->image_path)
-                    : url('storage/' . $member->image_path);
+            // Match committee member phone with customer mobile
+            if ($member->phone) {
+                $customerData = Customer::with(['village', 'familyMembers', 'category', 'subcategory'])
+                    ->where('mobile', $member->phone)
+                    ->first();
+                
+                if ($customerData) {
+                    $customerArray = $customerData->toArray();
+                    
+                    // Format URLs for customer details
+                    if (!empty($customerArray['image'])) {
+                        $customerArray['image'] = (strpos($customerArray['image'], 'uploads/') === 0)
+                            ? url($customerArray['image'])
+                            : url('storage/' . $customerArray['image']);
+                    }
+                    if (!empty($customerArray['background_image'])) {
+                        $customerArray['background_image'] = (strpos($customerArray['background_image'], 'uploads/') === 0)
+                            ? url($customerArray['background_image'])
+                            : url('storage/' . $customerArray['background_image']);
+                    }
+                    if (!empty($customerArray['pdf'])) {
+                        $customerArray['pdf'] = (strpos($customerArray['pdf'], 'uploads/') === 0)
+                            ? url($customerArray['pdf'])
+                            : url('storage/' . $customerArray['pdf']);
+                    }
+                    
+                    // Format URLs for family members images and pdfs
+                    if (!empty($customerArray['family_members'])) {
+                        foreach ($customerArray['family_members'] as &$familyMember) {
+                            if (!empty($familyMember['image'])) {
+                                $familyMember['image'] = (strpos($familyMember['image'], 'uploads/') === 0)
+                                    ? url($familyMember['image'])
+                                    : url('storage/' . $familyMember['image']);
+                            }
+                            if (!empty($familyMember['pdf'])) {
+                                $familyMember['pdf'] = (strpos($familyMember['pdf'], 'uploads/') === 0)
+                                    ? url($familyMember['pdf'])
+                                    : url('storage/' . $familyMember['pdf']);
+                            }
+                        }
+                    }
+                    
+                    $memberArray['customer_details'] = $customerArray;
+                } else {
+                    $memberArray['customer_details'] = null;
+                }
+            } else {
+                $memberArray['customer_details'] = null;
+                $customerData = null;
+            }
+
+            // Determine image_path: Prioritize Customer's profile image over Committee's uploaded image
+            $imageToUse = null;
+            if ($customerData && !empty($customerData->image)) {
+                $imageToUse = $customerData->image;
+            } elseif (!empty($member->image_path)) {
+                $imageToUse = $member->image_path;
+            }
+
+            if ($imageToUse) {
+                // If it's the customer's image and we already formatted it, it might already have the URL.
+                // But $customerData->image is the raw DB value.
+                $memberArray['image_path'] = (strpos($imageToUse, 'uploads/') === 0)
+                    ? url($imageToUse)
+                    : url('storage/' . $imageToUse);
             } else {
                 $memberArray['image_path'] = null;
             }
 
             $memberArray['image'] = $memberArray['image_path'];
+            
             return $memberArray;
         });
 
@@ -1214,6 +1297,65 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function getSubCategories($id)
+    {
+        $subCategories = SubCategory::where('category_id', $id)->get();
+        $existingNames = $subCategories->pluck('name')->toArray();
+        
+        // Add common subcategories that should be available for all categories
+        $commonSubs = ['Retail', 'Manufacturer', 'WholeSale', 'Services', 'Professional'];
+        $commonSubCategories = [];
+        
+        foreach ($commonSubs as $sub) {
+            // Only add the common subcategory if it hasn't already been created in the DB for this category
+            if (!in_array($sub, $existingNames)) {
+                $commonSubCategories[] = [
+                    'id' => $sub, // Using the string as ID so it maps correctly in the system
+                    'name' => $sub,
+                    'category_id' => $id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        // Merge DB subcategories with common subcategories
+        $allSubCategories = $subCategories->toArray();
+        $allSubCategories = array_merge($commonSubCategories, $allSubCategories);
+
+        // Append the "Others" option at the very end
+        $allSubCategories[] = [
+            'id' => 'Others',
+            'name' => 'Others',
+            'category_id' => $id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $allSubCategories
+        ]);
+    }
+
+    public function getCategories()
+    {
+        $categories = Category::all()->toArray();
+        
+        // Append the "Others" option at the very end
+        $categories[] = [
+            'id' => 'Others',
+            'name' => 'Others',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories
+        ]);
+    }
+
     /**
      * Display a specific customer plan item for the customer
      */
@@ -1326,6 +1468,7 @@ class CustomerController extends Controller
             'gender' => 'nullable|string|in:male,female,other',
             'link' => 'nullable|string|max:255',
             'pdf' => 'nullable|file|mimes:pdf|max:5048',
+            'biolink' => 'nullable|string|max:255',
         ]);
 
         // Handle Image file
@@ -1400,6 +1543,7 @@ class CustomerController extends Controller
             'gender' => 'nullable|string|in:male,female,other',
             'link' => 'nullable|string|max:255',
             'pdf' => 'nullable|file|mimes:pdf|max:5048',
+            'biolink' => 'nullable|string|max:255',
         ]);
 
         // Handle Image file replacement

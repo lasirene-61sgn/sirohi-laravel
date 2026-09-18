@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Category;
+use App\Models\SubCategory;
 use Laravel\Ai\Ai;
 
 class CustomerController extends Controller
@@ -83,7 +85,10 @@ class CustomerController extends Controller
         // Get field permissions
         $fieldPermissions = $this->getFieldPermissions();
 
-        return view('admin.customer.create', compact('villages', 'fieldPermissions'));
+        // Fetch categories
+        $categories = Category::all();
+
+        return view('admin.customer.create', compact('villages', 'fieldPermissions', 'categories'));
     }
 
     /**
@@ -112,9 +117,9 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:100',
             'age' => 'nullable|integer|min:0|max:150',
             'gender' => 'nullable|in:male,female,other',
-            'business_type' => 'nullable|string|max:100',
+            'subcategory_id' => 'nullable',
             'business_name' => 'nullable|string|max:100',
-            'product_service' => 'nullable|string|max:100',
+            'category_id' => 'nullable',
             'office_address' => 'nullable|string|max:500',
             'date_of_birth' => 'nullable|date',
             'anniversary_date' => 'nullable|date',
@@ -136,6 +141,7 @@ class CustomerController extends Controller
             'family.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'family.*.link' => 'nullable|string|max:255',
             'family.*.pdf' => 'nullable|file|mimes:pdf|max:5048',
+            'family.*.biolink' => 'nullable|string|max:255',
         ]);
 
         // Safety check: Ensure the selected village belongs to the current admin
@@ -153,6 +159,21 @@ class CustomerController extends Controller
         if ($request->hasFile('background_image')) {
             $imagePath = $request->file('background_image')->store('customer_backgrounds', 'public');
             $validatedData['background_image'] = $imagePath;
+        }
+
+        // Handle custom category
+        if ($request->filled('category_id') && !is_numeric($request->category_id)) {
+            $category = Category::firstOrCreate(['name' => $request->category_id]);
+            $validatedData['category_id'] = $category->id;
+        }
+
+        // Handle custom subcategory
+        if ($request->filled('subcategory_id') && !is_numeric($request->subcategory_id)) {
+            $subcategory = SubCategory::firstOrCreate([
+                'name' => $request->subcategory_id,
+                'category_id' => $validatedData['category_id'] ?? null
+            ]);
+            $validatedData['subcategory_id'] = $subcategory->id;
         }
 
         // 2. Create the main customer record
@@ -234,7 +255,10 @@ class CustomerController extends Controller
         // Get field permissions
         $fieldPermissions = $this->getFieldPermissions();
 
-        return view('admin.customer.edit', compact('customer', 'villages', 'fieldPermissions'));
+        // Fetch categories
+        $categories = Category::all();
+
+        return view('admin.customer.edit', compact('customer', 'villages', 'fieldPermissions', 'categories'));
     }
 
     /**
@@ -267,9 +291,9 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:100',
             'age' => 'nullable|integer|min:0|max:150',
             'gender' => 'nullable|in:male,female,other',
-            'business_type' => 'nullable|string|max:100',
+            'subcategory_id' => 'nullable',
             'business_name' => 'nullable|string|max:100',
-            'product_service' => 'nullable|string|max:100',
+            'category_id' => 'nullable',
             'office_address' => 'nullable|string|max:500',
             'date_of_birth' => 'nullable|date',
             'anniversary_date' => 'nullable|date',
@@ -308,6 +332,22 @@ class CustomerController extends Controller
             // Store new image
             $imagePath = $request->file('image')->store('customer_images', 'public');
             $validatedData['image'] = $imagePath;
+        }
+
+
+        // Handle custom category
+        if ($request->filled('category_id') && !is_numeric($request->category_id)) {
+            $category = Category::firstOrCreate(['name' => $request->category_id]);
+            $validatedData['category_id'] = $category->id;
+        }
+
+        // Handle custom subcategory
+        if ($request->filled('subcategory_id') && !is_numeric($request->subcategory_id)) {
+            $subcategory = SubCategory::firstOrCreate([
+                'name' => $request->subcategory_id,
+                'category_id' => $validatedData['category_id'] ?? $customer->category_id
+            ]);
+            $validatedData['subcategory_id'] = $subcategory->id;
         }
 
         $customer->update($validatedData);
@@ -646,6 +686,7 @@ class CustomerController extends Controller
             'gender' => 'nullable|string|in:male,female,other',
             'link' => 'nullable|string|max:255',
             'pdf' => 'nullable|file|mimes:pdf|max:5048',
+            'biolink' => 'nullable|string|max:255',
         ]);
 
         // Handle Image upload
@@ -709,6 +750,7 @@ class CustomerController extends Controller
             'gender' => 'nullable|string|in:male,female,other',
             'link' => 'nullable|string|max:255',
             'pdf' => 'nullable|file|mimes:pdf|max:5048',
+            'biolink' => 'nullable|string|max:255',
         ]);
 
         // Update Image (and clear out old file)

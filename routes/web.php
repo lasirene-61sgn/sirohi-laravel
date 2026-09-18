@@ -240,6 +240,13 @@ Route::prefix('customer/{customer}/family')->name('admin.customer.family.')->gro
     Route::get('committee/bulk-upload', [CommitteePersonController::class, 'showBulkUploadForm'])->name('committee.bulk_upload_form');
     Route::post('committee/bulk-upload', [CommitteePersonController::class, 'bulkUpload'])->name('committee.bulk_upload');
     Route::resource('committee', CommitteePersonController::class)->names('admin.committee')->parameters(['committee' => 'committeePerson']);
+    // Category and SubCategory Management Routes
+    Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class)->names('admin.categories');
+    Route::resource('subcategories', \App\Http\Controllers\Admin\SubCategoryController::class)->names('admin.subcategories');
+    Route::get('/api/categories/{id}/subcategories', function ($id) {
+        return response()->json(\App\Models\SubCategory::where('category_id', $id)->get());
+    })->name('admin.categories.subcategories');
+
     // Customer Management Routes
     Route::resource('customers', CustomerController::class)->names('admin.customers');
 

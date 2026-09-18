@@ -82,6 +82,11 @@ Route::prefix('customer')->group(function () {
 
     // MOVE IT HERE: This makes it public so the app can fetch it instantly on launch!
     Route::get('/v1/mobile-index-images', [CustomerApiController::class, 'getPublicImages']);
+    
+    // Public Routes
+    Route::get('/categories', [CustomerApiController::class, 'getCategories']);
+    Route::get('/categories/{id}/subcategories', [CustomerApiController::class, 'getSubCategories']);
+
     // Protected Routes
     Route::middleware(['auth:sanctum'])->group(function () {
         // Customer Profile

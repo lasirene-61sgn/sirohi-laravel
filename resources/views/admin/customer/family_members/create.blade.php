@@ -87,6 +87,14 @@
                     </div>
 
                     <div class="col-md-12">
+                        <label class="form-label">Bio Data Link</label>
+                        <input type="url" name="biolink" class="form-control @error('biolink') is-invalid @enderror" value="{{ old('biolink', 'https://jainwed.com/biodata') }}" placeholder="https://example.com">
+                        @error('biolink')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-12">
                         <label class="form-label">Profile Image</label>
                         <input type="file" name="image" class="form-control @error('image') is-invalid @enderror">
                         @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror

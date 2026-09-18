@@ -36,6 +36,8 @@ class Customer extends Authenticatable
         'age',
         'gender',
         'business_type',
+        'category_id',
+        'subcategory_id',
         'business_name',
         'product_service',
         'office_address',
@@ -129,6 +131,16 @@ class Customer extends Authenticatable
             'customer_id',
             'user_id'
         );
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function subcategory()
+    {
+        return $this->belongsTo(SubCategory::class, 'subcategory_id');
     }
     
 
