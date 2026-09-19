@@ -918,102 +918,102 @@ class CustomerController extends Controller
     }
 
     public function gallery(Request $request)
-{
-    $customer = Auth::guard('sanctum')->user();
+    {
+        $customer = Auth::guard('sanctum')->user();
 
-    // 1. Get gallery items
-    $galleryItems = GalleryItem::query()
-        ->where('status', 'active')
-        ->orderBy('created_at', 'desc')
-        ->get();
+        // 1. Get gallery items
+        $galleryItems = GalleryItem::query()
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    // 2. Identify newly added items unseen by this user
-    $unseenIds = GalleryItem::query()
-        ->where('status', 'active')
-        ->whereDoesntHave('viewers', function ($q) use ($customer) {
-            $q->where('user_id', $customer->id);
-        })
-        ->pluck('id')
-        ->toArray();
+        // 2. Identify newly added items unseen by this user
+        $unseenIds = GalleryItem::query()
+            ->where('status', 'active')
+            ->whereDoesntHave('viewers', function ($q) use ($customer) {
+                $q->where('user_id', $customer->id);
+            })
+            ->pluck('id')
+            ->toArray();
 
-    $newItemsCount = count($unseenIds);
+        $newItemsCount = count($unseenIds);
 
-    // 3. Force insert to pivot table immediately so it counts as read
-    if ($newItemsCount > 0) {
-        $insertData = [];
-        foreach ($unseenIds as $id) {
-            $insertData[] = [
-                'user_id' => $customer->id,
-                'gallery_item_id' => $id,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ];
+        // 3. Force insert to pivot table immediately so it counts as read
+        if ($newItemsCount > 0) {
+            $insertData = [];
+            foreach ($unseenIds as $id) {
+                $insertData[] = [
+                    'user_id' => $customer->id,
+                    'gallery_item_id' => $id,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ];
+            }
+            DB::table('gallery_views')->insertOrIgnore($insertData);
         }
-        DB::table('gallery_views')->insertOrIgnore($insertData);
+
+        // Helper closure to format path strings, arrays, or comma-separated lists with app URL
+        $formatPath = function ($path) {
+            if (empty($path)) {
+                return null;
+            }
+
+            // Handle Laravel arrays or JSON decoded attributes
+            if (is_array($path)) {
+                return array_map(function ($p) {
+                    if (empty($p)) return $p;
+                    return (strpos($p, 'http') === 0) ? $p : (
+                        (strpos($p, 'uploads/') === 0) ? url($p) : url('storage/' . $p)
+                    );
+                }, $path);
+            }
+
+            // Handle comma-separated lists
+            if (is_string($path) && strpos($path, ',') !== false) {
+                $paths = explode(',', $path);
+                $formatted = array_map(function ($p) {
+                    $p = trim($p);
+                    if (empty($p)) return $p;
+                    return (strpos($p, 'http') === 0) ? $p : (
+                        (strpos($p, 'uploads/') === 0) ? url($p) : url('storage/' . $p)
+                    );
+                }, $paths);
+                return implode(',', $formatted);
+            }
+
+            // Handle single string paths
+            return (strpos($path, 'http') === 0) ? $path : (
+                (strpos($path, 'uploads/') === 0) ? url($path) : url('storage/' . $path)
+            );
+        };
+
+        // Transform and guarantee full URLs for all image and video fields
+        $galleryItemsWithUrls = $galleryItems->map(function ($item) use ($formatPath) {
+            $itemArray = $item->toArray();
+
+            // Target all possible image attribute variations including 'image_paths'
+            foreach (['image_paths', 'image_paths_url', 'image_path', 'image', 'images'] as $field) {
+                if (array_key_exists($field, $itemArray) && !empty($itemArray[$field])) {
+                    $itemArray[$field] = $formatPath($itemArray[$field]);
+                }
+            }
+
+            // Target all possible video attribute variations including 'video_paths'
+            foreach (['video_paths', 'video_paths_url', 'video_path', 'video', 'videos'] as $field) {
+                if (array_key_exists($field, $itemArray) && !empty($itemArray[$field])) {
+                    $itemArray[$field] = $formatPath($itemArray[$field]);
+                }
+            }
+
+            return $itemArray;
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'new_items_count' => $newItemsCount,
+            'data' => $galleryItemsWithUrls
+        ]);
     }
-
-    // Helper closure to format path strings, arrays, or comma-separated lists with app URL
-    $formatPath = function ($path) {
-        if (empty($path)) {
-            return null;
-        }
-
-        // Handle Laravel arrays or JSON decoded attributes
-        if (is_array($path)) {
-            return array_map(function ($p) {
-                if (empty($p)) return $p;
-                return (strpos($p, 'http') === 0) ? $p : (
-                    (strpos($p, 'uploads/') === 0) ? url($p) : url('storage/' . $p)
-                );
-            }, $path);
-        }
-
-        // Handle comma-separated lists
-        if (is_string($path) && strpos($path, ',') !== false) {
-            $paths = explode(',', $path);
-            $formatted = array_map(function ($p) {
-                $p = trim($p);
-                if (empty($p)) return $p;
-                return (strpos($p, 'http') === 0) ? $p : (
-                    (strpos($p, 'uploads/') === 0) ? url($p) : url('storage/' . $p)
-                );
-            }, $paths);
-            return implode(',', $formatted);
-        }
-
-        // Handle single string paths
-        return (strpos($path, 'http') === 0) ? $path : (
-            (strpos($path, 'uploads/') === 0) ? url($path) : url('storage/' . $path)
-        );
-    };
-
-    // Transform and guarantee full URLs for all image and video fields
-    $galleryItemsWithUrls = $galleryItems->map(function ($item) use ($formatPath) {
-        $itemArray = $item->toArray();
-        
-        // Target all possible image attribute variations including 'image_paths'
-        foreach (['image_paths', 'image_paths_url', 'image_path', 'image', 'images'] as $field) {
-            if (array_key_exists($field, $itemArray) && !empty($itemArray[$field])) {
-                $itemArray[$field] = $formatPath($itemArray[$field]);
-            }
-        }
-
-        // Target all possible video attribute variations including 'video_paths'
-        foreach (['video_paths', 'video_paths_url', 'video_path', 'video', 'videos'] as $field) {
-            if (array_key_exists($field, $itemArray) && !empty($itemArray[$field])) {
-                $itemArray[$field] = $formatPath($itemArray[$field]);
-            }
-        }
-
-        return $itemArray;
-    });
-
-    return response()->json([
-        'status' => 'success',
-        'new_items_count' => $newItemsCount,
-        'data' => $galleryItemsWithUrls
-    ]);
-}
 
     public function event(Request $request)
     {
@@ -2175,16 +2175,29 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        // Get unique business categories (product_service) and transform them into objects
-        $categories = Customer::query()
+        $stringCategories = Customer::whereNull('category_id')
             ->whereNotNull('product_service')
             ->where('product_service', '!=', '')
             ->distinct()
-            ->orderBy('product_service', 'asc')
             ->pluck('product_service')
+            ->toArray();
+
+        $categoryIds = Customer::whereNotNull('category_id')
+            ->distinct()
+            ->pluck('category_id');
+
+        $dbCategories = Category::whereIn('id', $categoryIds)
+            ->pluck('name')
+            ->toArray();
+
+        $categories = collect(array_merge($stringCategories, $dbCategories))
+            ->filter(function($val) { return !empty($val); })
+            ->unique()
+            ->sort()
+            ->values()
             ->map(function ($type, $index) {
                 return [
-                    'id' => $index + 1, // Generate a temporary ID for the list
+                    'id' => $index + 1,
                     'category_name' => $type
                 ];
             });
@@ -2261,9 +2274,14 @@ class CustomerController extends Controller
             ->whereNotNull('business_name')
             ->where('business_name', '!=', '');
 
-        //  FIX: Filter by business_type column instead of business_name
+        //  FIX: Filter by product_service string OR category relationship name
         if ($category) {
-            $query->where('product_service', $category);
+            $query->where(function ($q) use ($category) {
+                $q->where('product_service', $category)
+                  ->orWhereHas('category', function ($cq) use ($category) {
+                      $cq->where('name', $category);
+                  });
+            });
         }
 
         if ($search) {
@@ -2273,10 +2291,21 @@ class CustomerController extends Controller
             });
         }
 
-        $businessNames = $query->selectRaw('business_name, business_type, product_service, office_address, mobile, name, COUNT(*) as count')
-            ->groupBy('business_name', 'business_type', 'product_service', 'office_address', 'mobile', 'name')
+        $businessNames = $query->selectRaw('business_name, business_type, product_service, office_address, mobile, name, ms_firm_name, category_id, subcategory_id, COUNT(*) as count')
+            ->groupBy('business_name', 'business_type', 'product_service', 'office_address', 'mobile', 'name', 'ms_firm_name', 'category_id', 'subcategory_id')
             ->orderBy('business_name', 'asc')
+            ->with(['category', 'subcategory'])
             ->get();
+
+        $businessNames->transform(function ($item) {
+            if ($item->category && $item->category->name) {
+                $item->product_service = $item->category->name;
+            }
+            if ($item->subcategory && $item->subcategory->name) {
+                $item->business_type = $item->subcategory->name;
+            }
+            return $item;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -2298,20 +2327,30 @@ class CustomerController extends Controller
             ], 400);
         }
 
-        $businessName = $request->query('business_name');
+        $firmName = $request->query('ms_firm_name') ?? $request->query('business_name');
 
-        if (!$businessName) {
+        if (!$firmName) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Business name is required.'
+                'message' => 'Firm name is required.'
             ], 400);
         }
 
         $customers = Customer::query()
-            ->where('business_name', $businessName)
-            ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
-            ->with('village:id,name')
+            ->where('ms_firm_name', $firmName)
+            ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'ms_firm_name', 'business_type', 'product_service', 'office_address', 'village_id', 'category_id', 'subcategory_id')
+            ->with(['village:id,name', 'category', 'subcategory'])
             ->get();
+
+        $customers->transform(function ($item) {
+            if ($item->category && $item->category->name) {
+                $item->product_service = $item->category->name;
+            }
+            if ($item->subcategory && $item->subcategory->name) {
+                $item->business_type = $item->subcategory->name;
+            }
+            return $item;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -2320,7 +2359,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Get all customers grouped by business name
+     * Get all customers grouped by firm name
      */
     public function getCustomersByBusinessCategories(Request $request)
     {
@@ -2334,28 +2373,33 @@ class CustomerController extends Controller
         }
 
         $customers = Customer::query()
-            ->whereNotNull('business_name')
-            ->where('business_name', '!=', '')
-            ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
-            ->with('village:id,name')
+            ->whereNotNull('ms_firm_name')
+            ->where('ms_firm_name', '!=', '')
             ->get();
 
-        $result = $customers->groupBy('business_name')->map(function ($items, $key) {
+        $result = $customers->groupBy('ms_firm_name')->map(function ($items, $key) {
+            $firstItem = $items->first();
+
+            // FORCED ARRAY KEYS: Exclude 'business_name' completely from the mapping
             return [
-                'business_name' => $key,
-                'count' => $items->count(),
-                'customers' => $items
+                'ms_firm_name'     => (string) $key,
+                'business_type'    => $firstItem->business_type ?? null,
+                'product_service'  => $firstItem->product_service ?? null,
+                'office_address'   => $firstItem->office_address ?? null,
+                'mobile'           => $firstItem->mobile ?? null,
+                'name'             => $firstItem->name ?? null,
+                'count'            => $items->count(),
             ];
         })->values();
 
         return response()->json([
             'status' => 'success',
-            'data' => $result
+            'data'   => $result
         ]);
     }
 
     /**
-     * Get customers by specific business name (Route parameter)
+     * Get customers by specific firm name (Route parameter)
      */
     public function getBusinessByName(Request $request, $business)
     {
@@ -2369,8 +2413,8 @@ class CustomerController extends Controller
         }
 
         $customers = Customer::query()
-            ->where('business_name', $business)
-            ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'business_name', 'business_type', 'product_service', 'office_address', 'village_id')
+            ->where('ms_firm_name', $business)
+            ->select('id', 'name', 'mobile', 'whatsapp', 'email', 'ms_firm_name', 'business_type', 'product_service', 'office_address', 'village_id')
             ->with('village:id,name')
             ->get();
 

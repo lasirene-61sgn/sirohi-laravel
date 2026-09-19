@@ -30,6 +30,7 @@ class AdminManagementController extends Controller
         'polls' => 'Polls',
         'links' => 'Links',
         'mobile_index' => 'Mobile Images',
+        'helpline' => 'Helipline',
     ];
     
     // Define available customer fields
@@ -62,6 +63,9 @@ class AdminManagementController extends Controller
         'blood_group' => 'Blood Group',
         'hobbies' => 'Hobbies',
         'native_place' => 'Native Place',
+        'category_id' => 'Category',
+        'subcategory_id' => 'Sub Category',
+        'background_image' => 'Background Image',
         'status' => 'Status'
     ];
     
